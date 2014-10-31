@@ -30,7 +30,7 @@ fprintf(fid,'CELLS %12.0f %12.0f\n',cell.ncells, cell.vtk_size);
 for i = 1:cell.ncells
    fprintf(fid,'%8.0f', cell.nodes(i,1) );
    for j = 1:cell.nodes(i,1)
-     fprintf(fid, '%8.0f', cell.nodes(i,1+j) );
+     fprintf(fid, '%8.0f', cell.nodes(i,1+j)-1 );
    end
    fprintf(fid,'\n'); 
 end
