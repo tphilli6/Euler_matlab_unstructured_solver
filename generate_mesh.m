@@ -118,8 +118,71 @@ end
 nfaces_total = sum(nfaces);
 face_list;
 
+%% Remove non-unique faces
+% This method loops through each face and for each face loops through all faces to see if the current face matches another face. This method is terribly slow and scales at the rate of Nnodes^2. You shouldn't use this method
+
+%% Initialize the counter for the number of faces per cell
+%face_list_old = face_list;
+%cell.nface = zeros(cell.ncells,1);
+% nface = 1;
+% for nf = 1:nfaces_total
+%   % If face has not been removed
+%   if face_list(nf,:) ~= [-1, -1]
+%
+%     % Store the face and relevant neighbor data
+%     face(nface).nodes(1:2)  = face_list(nf,:);%Stores the node index that makes of the face
+%     face(nface).cell_plus = cell_list(nf); %Stores the cell which the face is a member of
+%     face(nface).cell_neg  = -1; %blank neighbor
+%
+%     % Count the number of faces for each cell 
+%     cell.nface(face(nface).cell_plus) = cell.nface(face(nface).cell_plus) + 1;
+%     % Stores the face index for each cell : cell.faces( cell index, face counter index)
+%     cell.faces( face(nface).cell_plus, cell.nface(cell_list(nf)) ) = nf;
+%
+%% Add face list to cells
+%     % Compute geometric data
+%      ds_vec = vertex(face(nface).nodes(2),:) - vertex(face(nface).nodes(1),:);
+%      face(nface).area = sqrt( sum(ds_vec.^2) );
+%      face(nface).normal(1:2) = [ ds_vec(2), ds_vec(1) ]/face(nface).area;
+% 
+% 
+%     for face_check = 1:nfaces_total 
+% 
+%       % If face matches another face 
+%       %  -Flipped because counter clockwise ordering results from other faces
+%       if ( face_list(nf,:) == fliplr(face_list(face_check,:)) )
+%         % It's a match to another face!! So get rid of the match
+%         face_list(face_check,:) = -1;
+%     
+%         % Store the face and relevant cell connectivity
+%         face(nface).cell_neg  = cell_list(face_check); %Stores the neighboring cell
+% 
+%         % Count the number of faces for each cell 
+%         cell.nface(face(nface).cell_neg) = cell.nface(face(nface).cell_neg) + 1;
+%         % Stores the face index for each cell : cell.faces( cell index, face counter index)
+%         cell.faces( face(nface).cell_neg, cell.nface(cell_list(nf)) ) = nf;
+%       end
+% 
+%     end
+%
+%     nface = nface + 1;
+%   end 
+% end
+%%for n = 1:unique_faces
+%%fprintf('%8.0f  %8.0f\n',face(n).nodes)
+%%end
+%unique_faces = nface-1;
+
 
 % Remove non-unique faces
+% This method sorts all nodes for each face in ascending order, then the rows of each face are sorted. If there are two faces with the same two nodes then they will end up together. This algorithm removes the second for loop the previous method used by only checking one face ahead of the current face for repeats. This method scales by a factor of Nnodes.
+
+% Initialize the counter for the number of faces per cell
+face_list_sort = sort(face_list, 2, 'ascend'); % order node index per cell in ascending order
+face_list_sort = sortrows(face_list_sort);
+face_list = face_list_sort;
+
+cell.nface = zeros(cell.ncells,1);
  nface = 1;
  for nf = 1:nfaces_total
    % If face has not been removed
@@ -130,31 +193,43 @@ face_list;
      face(nface).cell_plus = cell_list(nf); %Stores the cell which the face is a member of
      face(nface).cell_neg  = -1; %blank neighbor
 
+     % Count the number of faces for each cell 
+     cell.nface(face(nface).cell_plus) = cell.nface(face(nface).cell_plus) + 1;
+     % Stores the face index for each cell : cell.faces( cell index, face counter index)
+     cell.faces( face(nface).cell_plus, cell.nface(cell_list(nf)) ) = nf;
+
+     % Add face list to cells
      % Compute geometric data
       ds_vec = vertex(face(nface).nodes(2),:) - vertex(face(nface).nodes(1),:);
       face(nface).area = sqrt( sum(ds_vec.^2) );
       face(nface).normal(1:2) = [ ds_vec(2), ds_vec(1) ]/face(nface).area;
  
  
-     for face_check = 1:nfaces_total 
  
-       % If face matches another face 
-       %  -Flipped because counter clockwise ordering results from other faces
-       if ( face_list(nf,:) == fliplr(face_list(face_check,:)) )
-         % It's a match to another face!! So get rid of the match
-         face_list(face_check,:) = -1;
+       % If face matches one face ahead, remove the one face ahead from the check
+       face_check = nf + 1;
+       if (face_check<nfaces_total)
+         if all( face_list(nf,:) == face_list(face_check,:) )
+           % It's a match to another face!! So get rid of the match
+           face_list(face_check,:) = -1;
      
-         % Store the face and relevant cell connectivity
-         face(nface).cell_neg  = cell_list(face_check); %Stores the neighboring cell
+           % Store the face and relevant cell connectivity
+           face(nface).cell_neg  = cell_list(face_check); %Stores the neighboring cell
  
+           % Count the number of faces for each cell 
+           cell.nface(face(nface).cell_neg) = cell.nface(face(nface).cell_neg) + 1;
+           % Stores the face index for each cell : cell.faces( cell index, face counter index)
+           cell.faces( face(nface).cell_neg, cell.nface(cell_list(nf)) ) = nf;
+         end
        end
  
-     end
+%     end
 
      nface = nface + 1;
    end 
  end
 unique_faces = nface-1
+
 
 
 % Compute cell data -----------------------------------------------------------
@@ -178,9 +253,9 @@ for n = 1:cell.ncells
 
   end
 end
-total_volume = sum(cell.volume)
+total_volume = sum(cell.volume);
 
 size(cell.volume);
 %% Write grid to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write_vtk(vertex, cell);
-write_vtk_data(cell.volume, 'volume')
+write_vtk_data(cell.volume, 'volume');
