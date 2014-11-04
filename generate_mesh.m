@@ -178,8 +178,9 @@ face_list;
 % This method sorts all nodes for each face in ascending order, then the rows of each face are sorted. If there are two faces with the same two nodes then they will end up together. This algorithm removes the second for loop the previous method used by only checking one face ahead of the current face for repeats. This method scales by a factor of Nnodes.
 
 % Initialize the counter for the number of faces per cell
+face_list_unsorted = face_list;
 face_list_sort = sort(face_list, 2, 'ascend'); % order node index per cell in ascending order
-face_list_sort = sortrows(face_list_sort);
+[face_list_sort, Isort] = sortrows(face_list_sort);
 face_list = face_list_sort;
 
 cell.nface = zeros(cell.ncells,1);
@@ -189,8 +190,9 @@ cell.nface = zeros(cell.ncells,1);
    if face_list(nf,:) ~= [-1, -1]
 
      % Store the face and relevant neighbor data
-     face(nface).nodes(1:2)  = face_list(nf,:);%Stores the node index that makes of the face
-     face(nface).cell_plus = cell_list(nf); %Stores the cell which the face is a member of
+     %face(nface).nodes(1:2)  = face_list(nf,:);%Stores the node index that makes of the face
+     face(nface).nodes(1:2)  = face_list_unsorted(Isort(nf),:);%Stores the node index that makes of the face
+     face(nface).cell_plus = cell_list(Isort(nf)); %Stores the cell which the face is a member of
      face(nface).cell_neg  = -1; %blank neighbor
 
      % Count the number of faces for each cell 
@@ -214,7 +216,7 @@ cell.nface = zeros(cell.ncells,1);
            face_list(face_check,:) = -1;
      
            % Store the face and relevant cell connectivity
-           face(nface).cell_neg  = cell_list(face_check); %Stores the neighboring cell
+           face(nface).cell_neg  = cell_list(Isort(face_check)); %Stores the neighboring cell
  
            % Count the number of faces for each cell 
            cell.nface(face(nface).cell_neg) = cell.nface(face(nface).cell_neg) + 1;
