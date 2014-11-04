@@ -13,9 +13,12 @@ xquad = 0.5;
 wquad = 1.0;
 
 source = zeros(size(cell.soln));
+    %temp
 cnt = zeros(size(cell.soln(:,1)));
+    %temp
+flux_check = zeros([length(cell.soln(:,1)),4]);
 
-for n = 1:length(face)
+for n = 1:numel(face)
 
   % store off face to prevent redudant memory access
   f = face(n);
@@ -36,16 +39,34 @@ for n = 1:length(face)
 
   end
 
+
   flux = flux * f.area;
 
   source(f.cell_plus,:) = source(f.cell_plus,:) + flux;
 
+    %temp
   cnt(f.cell_plus) = cnt(f.cell_plus) + 1;
+    %temp
+  flux_check(f.cell_plus,cnt(f.cell_plus)) = flux(4);
 %  disp([f.cell_plus,f.cell_neg, flux])
   if (f.cell_neg>0) 
     source(f.cell_neg,:) = source(f.cell_neg,:) - flux;
+    %temp
     cnt(f.cell_neg) = cnt(f.cell_neg) + 1;
+    %temp
+    flux_check(f.cell_neg,cnt(f.cell_neg)) = -flux(4);
   end
 
 
 end
+%size(flux_check)
+%disp([flux_check, sum(flux_check,2)])
+
+
+
+
+
+for n = 1:size(source,2)
+  source_new(:,n) = source(:,n)./cell.volume'; 
+end
+source = source_new;
