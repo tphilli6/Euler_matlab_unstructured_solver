@@ -1,4 +1,4 @@
-function [vertex, face, cell] = generate_mesh(imax, jmax, grid_type)
+function [vertex, face, cell] = generate_mesh(imax, jmax, grid_type, neq)
 
 x0 = 0;
 xL = 1;
@@ -223,8 +223,6 @@ cell.nface = zeros(cell.ncells,1);
          end
        end
  
-%     end
-
      nface = nface + 1;
    end 
  end
@@ -258,4 +256,14 @@ total_volume = sum(cell.volume);
 size(cell.volume);
 %% Write grid to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write_vtk(vertex, cell);
+fid = fopen('grid.vtk','a');
+fprintf(fid,'CELL_DATA %8.0f\n',length(cell.volume));
+fclose(fid);
 write_vtk_data(cell.volume, 'volume');
+
+
+for n = 1:length(face)
+  face(n).ul = zeros(1,neq);
+  face(n).ur = zeros(1,neq);
+end
+

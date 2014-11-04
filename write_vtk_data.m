@@ -14,8 +14,8 @@ fid = fopen('grid.vtk','a');
 
 
 % Write out data points, doesn't matter what cell type
-fprintf(fid,'CELL_DATA %8.0f\n',length(data));
-fprintf(fid,['SCALARS ',name,' double\n'],length(data));
+%fprintf(fid,'CELL_DATA %8.0f\n',length(data));
+fprintf(fid,['SCALARS ',name,' double 1\n'],length(data));
 fprintf(fid,'LOOKUP_TABLE default\n');
 
 for i = 1:length(data)
