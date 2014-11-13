@@ -33,9 +33,27 @@ end
 
 
 % Generate grid points  -------------------------------------------------------
+x = zeros(imax, jmax);
+y = zeros(imax, jmax);
 % Cartesian
-x = linspace(x0,xL,imax);
-y = linspace(y0,yL,jmax);
+xi = linspace(x0,xL,imax);
+eta = linspace(y0,yL,jmax);
+
+for n = 1:imax
+  x(n,:) = xi(n);
+  y(n,:) = eta;
+end
+% Nozzle
+%eta = linspace(0,2*pi,jmax);
+%xi = linspace(x0,xL,imax);
+%
+%for n = 1:imax
+%  x(n,:) = xi(n);
+%  ymax = 1 + 0.5*cos(xi(n));
+%  y(n,:) = linspace(-ymax,ymax,jmax);
+%end
+
+
 
 % Some parameters and useful functions
 max_nsize = 5; % max size to define cell connectivity + 1
@@ -47,7 +65,7 @@ ij_to_vec = @(i,j) (j-1)*imax + i; %i,j location to cell vector location
 cnt = 1;
 for j = 1:jmax
   for i = 1:imax
-    vertex(cnt,:) = [x(i),y(j),0];
+    vertex(cnt,:) = [x(i,j),y(i,j),0];
     cnt = cnt + 1;
   end
 end
@@ -198,13 +216,13 @@ cell.nface = zeros(cell.ncells,1);
      % Count the number of faces for each cell 
      cell.nface(face(nface).cell_plus) = cell.nface(face(nface).cell_plus) + 1;
      % Stores the face index for each cell : cell.faces( cell index, face counter index)
-     cell.faces( face(nface).cell_plus, cell.nface(cell_list(nf)) ) = nf;
+     cell.faces( face(nface).cell_plus, cell.nface(face(nface).cell_plus) )=nface;
 
      % Add face list to cells
      % Compute geometric data
       ds_vec = vertex(face(nface).nodes(2),:) - vertex(face(nface).nodes(1),:);
       face(nface).area = sqrt( sum(ds_vec.^2) );
-      face(nface).normal(1:2) = [ ds_vec(2), ds_vec(1) ]/face(nface).area;
+      face(nface).normal(1:2) = [ ds_vec(2), -ds_vec(1) ]/face(nface).area;
  
  
  
@@ -221,7 +239,7 @@ cell.nface = zeros(cell.ncells,1);
            % Count the number of faces for each cell 
            cell.nface(face(nface).cell_neg) = cell.nface(face(nface).cell_neg) + 1;
            % Stores the face index for each cell : cell.faces( cell index, face counter index)
-           cell.faces( face(nface).cell_neg, cell.nface(cell_list(nf)) ) = nf;
+           cell.faces( face(nface).cell_neg, cell.nface(face(nface).cell_neg))=nface;
          end
        end
  
@@ -257,11 +275,14 @@ total_volume = sum(cell.volume);
 
 size(cell.volume);
 %% Write grid to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write_vtk(vertex, cell);
+fid = fopen('grid.vtk','w');
+write_vtk(vertex, cell, fid);
+fclose(fid);
+
 fid = fopen('grid.vtk','a');
 fprintf(fid,'CELL_DATA %8.0f\n',length(cell.volume));
+write_vtk_data(cell.volume, 'volume', fid);
 fclose(fid);
-write_vtk_data(cell.volume, 'volume');
 
 
 for n = 1:length(face)
