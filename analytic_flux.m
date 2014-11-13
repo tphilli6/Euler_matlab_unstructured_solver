@@ -1,22 +1,22 @@
-function source = analytic_flux( vertex, cell, face, func)
+function source = analytic_flux( vertex, cell, face, flux_func, neq)
 % This function loops over the faces and computes the analytic source
 % term.
 % Inputs:
 %         vertex : list of nodes (nnodes x 2)
 %         cell   : cell structure for sizing
 %         face   : face structure with relevant face data
-%         func   : func structure for primitive variables 
-%                  (func.rho, func.u, func.v, func.p)
+%      flux_func : the flux function used to evaluate whatever
+%         neq    : number of equations
 
 % HARDWIRE : quadrature points, 1st order quadrature
 xquad = 0.5;
 wquad = 1.0;
 
-source = zeros(size(cell.soln));
+source = zeros([numel(cell.volume),neq]);
     %temp
-cnt = zeros(size(cell.soln(:,1)));
+cnt = zeros( numel(cell.volume) );
     %temp
-flux_check = zeros([length(cell.soln(:,1)),4]);
+flux_check = zeros([numel(cell.volume),neq]);
 
 for n = 1:numel(face)
 
@@ -35,7 +35,7 @@ for n = 1:numel(face)
     x(1) = (x2(1) - x1(1)) .* xquad(i) + x1(1);
     x(2) = (x2(2) - x1(2)) .* xquad(i) + x1(2);
 
-    flux = flux + euler_mms_flux(x, func, face(n).normal)*wquad(i);
+    flux = flux + flux_func(x, face(n).normal)*wquad(i);
 
   end
 
@@ -59,11 +59,6 @@ for n = 1:numel(face)
 
 
 end
-%size(flux_check)
-%disp([flux_check, sum(flux_check,2)])
-
-
-
 
 
 for n = 1:size(source,2)

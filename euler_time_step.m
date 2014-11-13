@@ -1,4 +1,4 @@
-function [dt] = local_time_step(vertex, cell, face, CFL, glb)
+function [dt] = euler_time_step(vertex, cell, face, CFL, glb)
 % Computes the local time step for each cell
 % Inputs:
 %         vertex : list of cell verticies (do I need this?)
