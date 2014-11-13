@@ -5,7 +5,7 @@ equation = 'euler';
 
 imax = 17;
 jmax = 17;
-iterations = 100;
+iterations = 200;
 CFL = 0.2;
 toler = 1e-10;
 glb_dt = 0; %global time step, 1 = true, 0=false
@@ -38,9 +38,9 @@ if (equation == 'euler')
   exact_fun = setup_mms_crossterm(mms_number);
   
   % Sets up the exact flux
-  exact_flux = @(x, normal) euler_mms_flux(x, exact_fun, normal)
+  exact_flux = @(x, normal) euler_mms_flux(x, exact_fun, normal);
   
   % Sets up the time step
-  local_time_step = @(vertex, cell, face, CFL, glb) euler_time_step(vertex, cell, face, CFL, glb)
+  local_time_step = @(vertex, cell, face, CFL, glb) euler_time_step(vertex, cell, face, CFL, glb);
 
 end
