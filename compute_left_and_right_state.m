@@ -16,15 +16,15 @@ face = face_in;
 
 for n = 1 : length(face)
 
-  r_cell = face(n).cell_plus;
+  l_cell = face(n).cell_plus;
 
-  face(n).ur = cell.soln(r_cell, :);
+  face(n).ul = cell.soln(l_cell, :);
 
-  l_cell = face(n).cell_neg;
+  r_cell = face(n).cell_neg;
   % If not a boundary
-  if (l_cell > 0)
-    face(n).ul = cell.soln(l_cell, :);
-  elseif (l_cell == -1)
+  if (r_cell > 0)
+    face(n).ur = cell.soln(r_cell, :);
+  elseif (r_cell == -1)
     % DIRICHLET BC
     % Use simple geometric average of nodes to find the cell center
     xc(1) = sum( vertex(face(n).nodes(1:2),1) )/2;
@@ -34,7 +34,17 @@ for n = 1 : length(face)
     u = face(n).func.u(xc);
     v = face(n).func.v(xc);
     p = face(n).func.p(xc);
-    face(n).ul = [rho, u, v, p];
+    face(n).ur = [rho, u, v, p];
   end
+
+%    xc(1) = sum( vertex(face(n).nodes(1:2),1) )/2;
+%    xc(2) = sum( vertex(face(n).nodes(1:2),2) )/2;
+%
+%    rho = face(n).func.rho(xc);
+%    u = face(n).func.u(xc);
+%    v = face(n).func.v(xc);
+%    p = face(n).func.p(xc);
+%    face(n).ur = [rho, u, v, p];
+%    face(n).ul = [rho, u, v, p];
 
 end
