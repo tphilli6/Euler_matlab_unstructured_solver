@@ -1,4 +1,4 @@
-function write_vtk(vertex, cell)
+function write_vtk(vertex, cell, fid)
 %% Writes vtk unstructured grid to file for use with paraview
 % Inputs: 
 %          vertex : 3 x n list of [x,y,z] node locations
@@ -9,7 +9,7 @@ function write_vtk(vertex, cell)
 %                            array [ncells x I] where I = [nnodes, n1, n2, n3,...]
 %% Write unstructured grid to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fid = fopen('grid.vtk','w');
+
 
 % Write header
 fprintf(fid,'# vtk DataFile Version 2.0\n');
@@ -46,4 +46,3 @@ for i = 1:cell.ncells
    end
 end
 
-fclose(fid);
