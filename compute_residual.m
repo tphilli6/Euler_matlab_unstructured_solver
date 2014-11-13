@@ -14,7 +14,8 @@ for i = 1:size(cell.mms_source,2)
   resid(:,i) = -cell.mms_source(:,i).*cell.volume';
 end
 
-for n = 1:size(face)
+
+for n = 1:numel(face)
 
   f = flux( face(n).ul, face(n).ur, face(n).normal )*face(n).area;
 
@@ -24,7 +25,10 @@ for n = 1:size(face)
   % If there is a neighboring cell
   i = face(n).cell_neg;
   if (i~=-1)
-    resid(i,:) = resid(i,:) - f';
+    resid(i,:) = resid(i,:) - f;
   end
 
+
 end
+
+
