@@ -147,10 +147,10 @@ face_list;
 %   % If face has not been removed
 %   if face_list(nf,:) ~= [-1, -1]
 %
-%     % Store the face and relevant neighbor data
+%     % Store the face and relevant nbr data
 %     face(nface).nodes(1:2)  = face_list(nf,:);%Stores the node index that makes of the face
 %     face(nface).cell_plus = cell_list(nf); %Stores the cell which the face is a member of
-%     face(nface).cell_neg  = -1; %blank neighbor
+%     face(nface).cell_neg  = -1; %blank nbr
 %
 %     % Count the number of faces for each cell 
 %     cell.nface(face(nface).cell_plus) = cell.nface(face(nface).cell_plus) + 1;
@@ -173,7 +173,7 @@ face_list;
 %         face_list(face_check,:) = -1;
 %     
 %         % Store the face and relevant cell connectivity
-%         face(nface).cell_neg  = cell_list(face_check); %Stores the neighboring cell
+%         face(nface).cell_neg  = cell_list(face_check); %Stores the nbring cell
 % 
 %         % Count the number of faces for each cell 
 %         cell.nface(face(nface).cell_neg) = cell.nface(face(nface).cell_neg) + 1;
@@ -202,16 +202,17 @@ face_list_sort = sort(face_list, 2, 'ascend'); % order node index per cell in as
 face_list = face_list_sort;
 
 cell.nface = zeros(cell.ncells,1);
+cell.nnbr = zeros(cell.ncells,1);
  nface = 1;
  for nf = 1:nfaces_total
    % If face has not been removed
    if face_list(nf,:) ~= [-1, -1]
 
-     % Store the face and relevant neighbor data
+     % Store the face and relevant nbr data
      %face(nface).nodes(1:2)  = face_list(nf,:);%Stores the node index that makes of the face
      face(nface).nodes(1:2)  = face_list_unsorted(Isort(nf),:);%Stores the node index that makes of the face
      face(nface).cell_plus = cell_list(Isort(nf)); %Stores the cell which the face is a member of
-     face(nface).cell_neg  = -1; %blank neighbor
+     face(nface).cell_neg  = -1; %blank nbr
 
      % Count the number of faces for each cell 
      cell.nface(face(nface).cell_plus) = cell.nface(face(nface).cell_plus) + 1;
@@ -234,12 +235,31 @@ cell.nface = zeros(cell.ncells,1);
            face_list(face_check,:) = -1;
      
            % Store the face and relevant cell connectivity
-           face(nface).cell_neg  = cell_list(Isort(face_check)); %Stores the neighboring cell
+           face(nface).cell_neg  = cell_list(Isort(face_check)); %Stores the nbring cell
  
            % Count the number of faces for each cell 
            cell.nface(face(nface).cell_neg) = cell.nface(face(nface).cell_neg) + 1;
            % Stores the face index for each cell : cell.faces( cell index, face counter index)
            cell.faces( face(nface).cell_neg, cell.nface(face(nface).cell_neg))=nface;
+
+           % get the current and nbr cell
+           cur_cell = cell_list(Isort(nf));
+           nbr_cell = cell_list(Isort(face_check));
+
+           % store current nbr count and increment by 1 for current 
+           % cell
+           nnbr = cell.nnbr(cell_list(Isort(nf)));
+           nnbr = 1 + nnbr;
+           cell.nnbr(cur_cell) = nnbr;
+           cell.nbrs(cur_cell,nnbr) = nbr_cell;
+
+           % store current nbr count and increment by 1 for nbr
+           % cell
+           nnbr = cell.nnbr(cell_list(Isort(face_check)));
+           nnbr = 1 + nnbr;
+           cell.nnbr(nbr_cell) = nnbr;
+           cell.nbrs(nbr_cell,nnbr) = cur_cell;
+
          end
        end
  
@@ -247,7 +267,6 @@ cell.nface = zeros(cell.ncells,1);
    end 
  end
 unique_faces = nface-1
-
 
 
 % Compute cell data -----------------------------------------------------------

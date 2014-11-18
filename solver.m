@@ -7,6 +7,10 @@ equation_setup
 % Generates the simple mesh for the solver, also saves it as a vtk grid file. 
 % While not currently operational, can add a vtk input for a more general solution
 [vertex, face, cell] = generate_mesh(imax, jmax, grid_type, neq);
+% Computes the cell mapping required for quadratures
+setup_mapping;
+setup_reconstruction;
+build_kexact_stencil;
 
 % Setup dirichlet bc -------------------------------------------------------------------------------
 % assigns the exact solution to apply a dirichlet bc computed later
@@ -16,17 +20,22 @@ for n = 1 : length(face)
 end
 
 % Write the MMS source term to file ----------------------------------------------------------------
-cell.mms_source = analytic_flux(vertex, cell, face, exact_flux, neq);
+cell.mms_source = analytic_flux(vertex, cell, face, exact_flux, neq,...
+                                source_term_order);
 write_vtk_solution( vertex, cell, cell.mms_source, 'source', 'grid.vtk','a',eq )
 
 % Setup and Compute the Exact Solution --------------------------------------------------------------
-exact = analytic_solution(vertex, cell, exact_fun);
+exact = analytic_solution(vertex, cell, exact_order, analytic_soln);
 write_vtk_solution( vertex, cell, exact, 'exact', 'grid.vtk','a',var )
 
 %Compute Exact TE ----------------------------------------------------------------------------------
 % Initializes the exact solution and computes the discrete residual to get the exact te
 cell.soln = exact;
-face_out = compute_left_and_right_state(vertex, cell, face); face = face_out;
+kexact_order
+face_out = compute_left_and_right_state(vertex, cell, face,...
+                                        kexact_order, analytic_soln);
+face = face_out;
+
 te = compute_residual( cell, face, flux );
 write_vtk_solution( vertex, cell, te, 'exact-te', 'grid.vtk','a',eq )
 
@@ -50,7 +59,9 @@ for iter = 1:iterations
  
   %Compute left and right face states
   % Not effecient but can only do this in matlab
-  face_out = compute_left_and_right_state(vertex, cell, face); face = face_out;
+  face_out = compute_left_and_right_state(vertex, cell, face,...
+                                          kexact_order, analytic_soln);
+  face = face_out;
  
   %Compute residual
   resid = compute_residual( cell, face, flux );
@@ -110,7 +121,8 @@ write_norms(de, 'exact-de')
 %      soln = cell solution [ncells x soln vars]
 %      nfaces = number of faces per cell [ncells]
 %      faces = list of face indices for each cell [ ncells, nfaces]
-
+%      nnbr = number of neighboring cells
+%      nbrs  = list of cell indicies of neighboring cells
 % Info on face data type
 % Face data type is array of struct so indexing is face(i).variable
 % face.

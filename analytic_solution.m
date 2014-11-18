@@ -1,26 +1,43 @@
-function exact = analytic_solution(vertex, cell, func)
+function exact = analytic_solution(vertex, cell, order, ...
+                                   analytic_soln)
 % This function evaluates an analytic function over the cells
 % Inputs: 
 %         vertex : list of nodes (nnodes x 2)
 %           cell : cell structure
-%           func : func structure for primitive variables
-%                  (func.rho, func.u, func.v, func.p)
+%  analytic_soln : anonymous function which evaluates the exact solution
 
-%HARDWIRE : quadrature points, 1st order quadrature
+%HARDWIRE : curtis-clenshaw quadrature points
 
+dim = 2;
+method = 'CC'; % the only one available currently
+quad_range_option_for_tri_transform = 2; % 1 for [-1,1] range
+
+[xcc_quad, wcc] = sparse_grid(dim, dim*order, method);
+for i = 1:length(wcc)
+  [xcc_tri(i,:)] = transform_quad_to_triangle(xcc_quad(i,:), ...
+                                  quad_range_option_for_tri_transform);
+end
+
+test = analytic_soln([0,0]);
+neq = size(test,2);
+exact = zeros(cell.ncells,neq);
 
 for n = 1:cell.ncells
 
   % Use simple geometric average of nodes to find the cell center
   nc = cell.nodes(n,1);
-  xc(1) = sum( vertex(cell.nodes(n,2:nc+1),1) )/nc;
-  xc(2) = sum( vertex(cell.nodes(n,2:nc+1),2) )/nc;
+  if (nc==3) % triangles
+    xcc = xcc_tri;
+  elseif (nc==4) % quadrilateral
+    xcc = xcc_quad;
+  end
 
+  for i = 1:length(wcc)
+    x(1) = cell.map(n).x(xcc(i,:));
+    x(2) = cell.map(n).y(xcc(i,:));
 
-  exact(n, 1) = func.rho(xc);
-  exact(n, 2) = func.u(xc);
-  exact(n, 3) = func.v(xc);
-  exact(n, 4) = func.p(xc);
+    exact(n, :) = exact(n, 1) + analytic_soln(x).*wcc(i);
+  end
 
 end
 
