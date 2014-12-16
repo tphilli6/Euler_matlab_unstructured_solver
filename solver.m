@@ -22,52 +22,70 @@ end
 % Write the MMS source term to file ----------------------------------------------------------------
 cell.mms_source = analytic_flux(vertex, cell, face, exact_flux, neq,...
                                 source_term_order);
-write_vtk_solution( vertex, cell, cell.mms_source, 'source', 'grid.vtk','a',eq )
+write_vtk_solution( vertex, cell, cell.mms_source, 'source', 'grid.vtk', 'a', eq )
 
 % Setup and Compute the Exact Solution --------------------------------------------------------------
-exact = analytic_solution(vertex, cell, exact_order, analytic_soln);
-write_vtk_solution( vertex, cell, exact, 'exact', 'grid.vtk','a',var )
+cell.exact = analytic_solution(vertex, cell, exact_order, analytic_soln);
+write_vtk_solution( vertex, cell, cell.exact, 'exact', 'grid.vtk','a',var )
 
 %Compute Exact TE ----------------------------------------------------------------------------------
 % Initializes the exact solution and computes the discrete residual to get the exact te
-cell.soln = exact;
-kexact_order
+cell.soln = cell.exact;
+
+reconstruction = reconstruct_solution(cell, fit_type);
+cell.reconstruction = reconstruction;
 face_out = compute_left_and_right_state(vertex, cell, face,...
-                                        kexact_order, analytic_soln);
+                                        analytic_soln);
 face = face_out;
 
-te = compute_residual( cell, face, flux );
-write_vtk_solution( vertex, cell, te, 'exact-te', 'grid.vtk','a',eq )
+cell.te_exact = compute_residual( cell, face, flux );
+write_vtk_solution( vertex, cell, cell.te_exact, 'exact-te', 'grid.vtk','a',eq )
 
 % Initialize the solution variables and writes the initial conditions-------------------------------
 for n = 1:neq
-  cell.soln(:,n) = var_inf(n) * ones([size(exact,1),1]);
+  cell.soln(:,n) = var_inf(n) * ones([size(cell.exact,1),1]);
 end
-write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(0),'.vtk'],'w',var )
+ 
+% Setup initialization parameters
+% clears parameters
+if restart == 0
+  cell.iteration = 1;
+  cell.l2_to_normalize = ones(1,neq);
 
+  cell.soln = cell.exact;
 
+  write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(0),'.vtk'],'w',var )
 
+elseif restart == 1
+  load('output_solution.mat');
+
+end
 
 
 % TIME LOOP ----------------------------------------------------------------------------------------
 
 l2_to_normalize = ones(1,neq);
-for iter = 1:iterations
+for iter = cell.iteration:cell.iteration + iterations - 1
 
   %Compute time step
   dt = local_time_step(vertex, cell, face, CFL, glb_dt);
- 
+
+  % Compute the reconstruction
+%  cell.soln = exact;
+  [reconstruction, cell.lhs_set] = reconstruct_solution(cell, fit_type);
+  cell.reconstruction = reconstruction;
+
   %Compute left and right face states
   % Not effecient but can only do this in matlab
   face_out = compute_left_and_right_state(vertex, cell, face,...
-                                          kexact_order, analytic_soln);
+                                          analytic_soln);
   face = face_out;
  
   %Compute residual
   resid = compute_residual( cell, face, flux );
 
   % Check residual convergence
-  [l2norms, converged, l2_to_normalize] = check_convergence( resid, iter, l2_to_normalize, toler );
+  [l2norms, converged, cell.l2_to_normalize] = check_convergence( resid, iter, cell.l2_to_normalize, toler );
   fprintf('%6.0f %12.6e %12.6e %12.6e %12.6e \n', iter, l2norms);
   if (converged)
     fprintf('Solution has converged!!\n');
@@ -92,9 +110,9 @@ for iter = 1:iterations
     end
   end
  
-  % Write out new solution
-  write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
-  write_vtk_solution( vertex, cell, abs(resid), 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
+%  % Write out new solution
+%  write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
+%  write_vtk_solution( vertex, cell, abs(resid), 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
  
 
 end
@@ -104,12 +122,24 @@ write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vt
 write_vtk_solution( vertex, cell, resid, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
 
 % Compute discretization error and write to file
-de = cell.soln - exact;
+de = cell.soln - cell.exact;
 write_vtk_solution( vertex, cell, de, 'exact-de', 'grid.vtk','a',eq )
 
 write_norms(de, 'exact-de')
+cell.iteration = iter+1;
+save('output_solution.mat','cell','vertex','face')
 
 
+
+
+te_smooth_grid(cell, face, vertex, ...
+                        kexact_order, ...
+                        kexact_type, ...
+                        fit_type, ...
+                        4,...
+                        flux_integral_order,...
+                        analytic_soln,...
+                        flux)
 
 % Info on cell data type
 % Cell data type is struct of array so indexing is cell.variable(i)
@@ -118,7 +148,8 @@ write_norms(de, 'exact-de')
 %      volume = cell volume [ncells]
 %      cell_type = 0 for quad, 1, for triangle
 %      nodes = node indices [ nvertex, verte1, vertex2, ...]
-%      soln = cell solution [ncells x soln vars]
+%      soln =  cell solution [ncells x soln vars]
+%      exact = exact cell solution [ncells x soln vars]
 %      nfaces = number of faces per cell [ncells]
 %      faces = list of face indices for each cell [ ncells, nfaces]
 %      nnbr = number of neighboring cells

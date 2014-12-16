@@ -7,18 +7,20 @@ equation = 'euler';
 
 imax = 9;
 jmax = 9;
-iterations = 1;
-CFL = 0.2;
+iterations = 1000;
+CFL = 0.05;
 toler = 1e-10;
 glb_dt = 0; %global time step, 1 = true, 0=false
 mms_number=1; %1=supersonic, 2=subsonic
-grid_type = 1; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
+grid_type = 0; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
+restart = 0;
 
-source_term_order=4;
-exact_order=1;
+source_term_order=6;
+exact_order=6;
 
 kexact_order = 2;
-kexact_type = 'kexact_extended'; %'kexact', 'kexact_extended'
+flux_integral_order = 4;
+kexact_type = 'kexact'; %'kexact', 'kexact_extended'
 %kexact_type = 'kexact_extended';
 % kexact : the sum of the exponents <= k
 %          i.e. p = a + bx + cy
@@ -26,6 +28,7 @@ kexact_type = 'kexact_extended'; %'kexact', 'kexact_extended'
 %                 : i.e. p = a + bx + cy + dxy
 fit_type = 'lsq'; %'lsq', 'kexact'
 % lsq : nstencil = nunknowns + 1, conservation of the mean for only cell i
+% lsq-true : nstencil = nunknowns + 1, conservation of the mean for only cell i
 % kexact : nstencil = nunknowns, conservation of the mean for all cells
 
 if (equation == 'euler')
@@ -56,9 +59,12 @@ if (equation == 'euler')
   % Sets up the exact solution
   analytic_soln = @(x) euler_analytic_solution(x,exact_fun); 
 
+  % Analytic euler flux
+  eq_flux = @(V, normal) euler_flux(V,normal);
+
   % Sets up the exact flux
   exact_flux = @(x, normal) euler_mms_flux(x, exact_fun, normal);
-  
+ 
   % Sets up the time step
   local_time_step = @(vertex, cell, face, CFL, glb) euler_time_step(vertex, cell, face, CFL, glb);
 

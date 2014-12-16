@@ -8,6 +8,7 @@ function [resid] = compute_residual(cell, face, flux)
 % Outputs :
 %           resid : residual array of size cell.soln
 
+wquad = cell.reconstruction_param.wquad;
 
 % Initialize residual
 for i = 1:size(cell.mms_source,2)
@@ -17,18 +18,26 @@ end
 
 for n = 1:numel(face)
 
-  f = flux( face(n).ul, face(n).ur, face(n).normal )*face(n).area;
+  f = 0;
+  for j = 1:length(wquad)
+    f = f ...
+      +flux( face(n).ul(j,:), face(n).ur(j,:), face(n).normal )*wquad(j);
+  end
+  f = f*face(n).area;
 
   i = face(n).cell_plus;
   resid(i,:) = resid(i,:) + f;
 
   % If there is a neighboring cell
   i = face(n).cell_neg;
-  if (i~=-1)
+  if (i>=1)
     resid(i,:) = resid(i,:) - f;
   end
 
 
 end
 
+%for n = 1:size(resid,2)
+%  resid(:,n) = resid(:,n)./cell.volume'; 
+%end
 

@@ -2,23 +2,28 @@
 % cell.stencil(i).cells(1:nstencil)
 % cell.nunkowns
 
+% Print status message
+fprintf(['Building stencil for ',fit_type,' reconstruction\n'])
+
 % Reconstruction types based on what's set in equation_setup.m
-if strcmp(fit_type, 'lsq')
+if strcmp(fit_type(1:3), 'lsq')
   nstencil = cell.nunknowns + 1;
- 
 elseif strcmp(fit_type, 'kexact')
   nstencil = cell.nunknowns;
-
+elseif strcmp(fit_type, 'extended')
+  % requires manual setting of extra_terms prior to calling
+  nstencil = cell.nunknowns + extra_terms;
 end
-nstencil
+
 
 for n = 1:cell.ncells
- 
+
   %cells(1:nstencil)=0
   stn_cnt= 1;
   cells(stn_cnt) = n; %assign current cell to stencil
-  cell_dup = [1];
+  cell_dup = [2];
   nbrs_list = [n];
+
   while (stn_cnt<nstencil)
 
     for i = 1:stn_cnt;
@@ -26,7 +31,6 @@ for n = 1:cell.ncells
       nnbr = cell.nnbr(cur_cell);
       
       for j = 1:nnbr
-%        [i,j,cell.nbrs(cur_cell,j), nbrs_list]
         if any(cell.nbrs(cur_cell,j)==nbrs_list)
           I= find(cell.nbrs(cur_cell,j)==nbrs_list);
           cell_dup(I) = cell_dup(I) + 1;
@@ -39,16 +43,47 @@ for n = 1:cell.ncells
 
     end
 
-    [sorted, I] = sort(cell_dup,'descend');
-
-    cells = nbrs_list( I(1:min(stn_cnt,nstencil)) );
+    [~, I] = sort(cell_dup,'descend');
+    cells = nbrs_list( I );
 
   end
-  cell.stencil(n).cells = cells;
-  
+
+    % Add on that chooses stencil based on condition number of reconstruction
+    if (length(cell_dup)>nstencil)
+      [sorted, I] = sort(cell_dup,'descend');
+
+      matching_edges = find(sorted(nstencil)==sorted(2:end))+1;
+
+      needed_matching = find(sorted(nstencil)==sorted(2:nstencil));
+      n_needed = length(needed_matching);
+
+      poss_sten_ind = nchoosek(matching_edges, n_needed);
+      poss_sten = cells(poss_sten_ind);
+
+      % Annoyingly, if n_needed is only one the poss_sten is a row vector otherwise it's an array
+      if (n_needed == 1)
+        poss_sten = poss_sten';
+      end
+
+      sten_base = cells(1:nstencil-n_needed);
+
+      cond_check = 0;
+      for nsten = 1:size(poss_sten,1)
+        sten_check = [sten_base, poss_sten(nsten,:)];
+        [~, cond_check(nsten)] = reconstruction_lhs(sten_check, ...
+                                      cell.reconstruction,...
+                                      fit_type,1);
+
+      end
+      [~,sten_choose] = max(cond_check);
+      cells = [sten_base, poss_sten(sten_choose,:)];
+
+    end
+
+
+  cell.stencil(n).cells = cells(1:nstencil);
 
 end
-
 
 % Write out the stencil in vtk format for inspection
 % Need:

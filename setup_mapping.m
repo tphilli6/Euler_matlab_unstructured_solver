@@ -5,7 +5,7 @@
 
 %HARDWIRE: linear mapping for each cell
 
-[~, ~ , Ainv_quad] = grid_mapping([0,0; 1,0;, 0,1; 1,1]);
+[~, ~ , Ainv_quad] = grid_mapping([0,0; 1,0;, 1,1; 0,1]);
 [~, ~ , Ainv_tri] = grid_mapping([0,0; 1,0;, 0,1]);
 
 for n = 1:cell.ncells

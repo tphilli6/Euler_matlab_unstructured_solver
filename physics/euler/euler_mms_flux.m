@@ -16,4 +16,4 @@ u = fun.u(x);
 v = fun.v(x);
 p = fun.p(x);
 
-flux = euler_flux(rho,u,v,p,normal);
+flux = euler_flux([rho,u,v,p],normal);

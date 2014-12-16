@@ -10,17 +10,17 @@ function [funcx, funcy, Ainv] = grid_mapping(x, Ainv)
     % coef for p = a + bx + cy + dxy
     coef=@(x) [1, x(1), x(2), x(1).*x(2) ];
     xi = [0, 0
-          0, 1
           1, 0
-          1, 1];
+          1, 1
+          0, 1];
   
     nunknowns = 4;
   
   elseif (size(x,1) == 3)
     coef=@(x) [1, x(1), x(2)];
     xi = [0, 0
-          0, 1
-          1, 0];
+          1, 0
+          0, 1];
           
     nunknowns = 3;
   
@@ -41,6 +41,7 @@ end
 
   by = x(:,2);
   coefy = Ainv*by;
+
 
   funcx = @(xi) coef(xi)*coefx;
   funcy = @(xi) coef(xi)*coefy;

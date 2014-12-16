@@ -36,7 +36,7 @@ for n = 1:cell.ncells
     x(1) = cell.map(n).x(xcc(i,:));
     x(2) = cell.map(n).y(xcc(i,:));
 
-    exact(n, :) = exact(n, 1) + analytic_soln(x).*wcc(i);
+    exact(n, :) = exact(n, :) + analytic_soln(x).*wcc(i);
   end
 
 end

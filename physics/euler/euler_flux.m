@@ -1,4 +1,4 @@
-function flux = euler_flux(rho, u, v, p, normal)
+function flux = euler_flux(V, normal)
 % Computes the Euler analytic flux for a given function
 % Inputs:
 %       rho : Density
@@ -10,6 +10,11 @@ function flux = euler_flux(rho, u, v, p, normal)
 % Outputs:
 %      flux : analytic flux
 % HARDWIRE: gamma = 1.4
+rho = V(1);
+u = V(2);
+v = V(3);
+p = V(4);
+
 gamma = 1.4;
 
 

@@ -9,13 +9,8 @@ if (attribute=='w')
 end
 
 
-
 for i = 1:size(data,2)
   write_vtk_data(data(:,i), [soln_name, '-', label{i}], fid);
 end 
 
 fclose(fid);
-
-
-
-

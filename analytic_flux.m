@@ -36,10 +36,13 @@ for n = 1:numel(face)
     x(1) = (x2(1) - x1(1)) .* xquad(i) + x1(1);
     x(2) = (x2(2) - x1(2)) .* xquad(i) + x1(2);
 
+%  if (face(n).cell_plus==1)
+%  fprintf('anal flux for cell 1, face %8.4f\n',n)
+%    fprintf('%8.4f %8.4f %23.15e %23.15e %23.15e %23.15e %8.4f \n',x(1), x(2), flux_func(x, face(n).normal),wquad(i))
+%  end
     flux = flux + flux_func(x, face(n).normal)*wquad(i);
 
   end
-
 
   flux = flux * f.area;
 
