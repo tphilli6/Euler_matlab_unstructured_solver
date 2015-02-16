@@ -56,8 +56,9 @@ func.p = @(x) base_function(x, p, l);
 
 function f = base_function(x,c,l)
 
-%f = c(1) + c(2)*x(1).^2 + c(5)*x(2).^2;% + c(8)*x(1)*x(2);
+% f = c(1) + c(2)*x(1).^2 + c(5)*x(2).^2;% + c(8)*x(1)*x(2);
+% f = c(1) + c(2)*x(1)*x(2) + c(5)*x(1).^2*x(2).^2 + c(8)*x(1).^3*x(2);% + c(8)*x(1)*x(2);
 
 f = c(1) + c(2)*sin(c(3)*pi*x(1)/l + c(4)*pi) ...
-         + c(5)*sin(c(6)*pi*x(2)/l + c(7)*pi) ...
-         + c(8)*sin(c(9)*pi*x(1)*x(2)/l^2 + c(10)*pi); 
+        + c(5)*sin(c(6)*pi*x(2)/l + c(7)*pi) ...
+        + c(8)*sin(c(9)*pi*x(1)*x(2)/l^2 + c(10)*pi); 

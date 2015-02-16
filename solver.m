@@ -1,6 +1,6 @@
 %% Script to run an unstructured solver
-%clc
-clear all
+clc
+% clear all
 
 equation_setup
 
@@ -62,6 +62,7 @@ elseif restart == 1
 end
 
 
+
 % TIME LOOP ----------------------------------------------------------------------------------------
 
 l2_to_normalize = ones(1,neq);
@@ -74,7 +75,8 @@ for iter = cell.iteration:cell.iteration + iterations - 1
 %  cell.soln = exact;
   [reconstruction, cell.lhs_set] = reconstruct_solution(cell, fit_type);
   cell.reconstruction = reconstruction;
-
+  
+  
   %Compute left and right face states
   % Not effecient but can only do this in matlab
   face_out = compute_left_and_right_state(vertex, cell, face,...
@@ -83,7 +85,11 @@ for iter = cell.iteration:cell.iteration + iterations - 1
  
   %Compute residual
   resid = compute_residual( cell, face, flux );
-
+  
+%   disp(vertex([1;2;11;10],1:2))
+%   disp([face(1).ul(:,1), face(2).ul(:,1), face(4).ul(:,1),face(8).ul(:,1)])
+%   disp([face(1).ur(:,1), face(2).ur(:,1), face(4).ur(:,1),face(8).ur(:,1)])
+  
   % Check residual convergence
   [l2norms, converged, cell.l2_to_normalize] = check_convergence( resid, iter, cell.l2_to_normalize, toler );
   fprintf('%6.0f %12.6e %12.6e %12.6e %12.6e \n', iter, l2norms);
@@ -117,6 +123,15 @@ for iter = cell.iteration:cell.iteration + iterations - 1
 
 end
 
+te_smooth_grid(cell, face, vertex, ...
+                        kexact_order, ...
+                        kexact_type, ...
+                        fit_type, ...
+                        4,...
+                        flux_integral_order,...
+                        analytic_soln,...
+                        flux);
+
 % Write out solution
 write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
 write_vtk_solution( vertex, cell, resid, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
@@ -131,15 +146,6 @@ save('output_solution.mat','cell','vertex','face')
 
 
 
-
-te_smooth_grid(cell, face, vertex, ...
-                        kexact_order, ...
-                        kexact_type, ...
-                        fit_type, ...
-                        4,...
-                        flux_integral_order,...
-                        analytic_soln,...
-                        flux)
 
 % Info on cell data type
 % Cell data type is struct of array so indexing is cell.variable(i)

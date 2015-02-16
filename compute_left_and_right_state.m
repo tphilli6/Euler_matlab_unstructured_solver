@@ -1,5 +1,5 @@
 function [face] = compute_left_and_right_state(vertex, cell, face_in,...
-                                               analytic_soln)
+                                               analytic_soln, ncell)
 % Computes the left and right solution states for each face
 % Inputs: 
 %         vertex : list of nodes array of size [nnodes x 2]
@@ -8,6 +8,13 @@ function [face] = compute_left_and_right_state(vertex, cell, face_in,...
 %
 % Outputs: 
 %          face : face structure with face(n).ul and face(n).ur modified
+
+if (nargin == 4)
+    face_loop = 1:length(face_in);
+elseif (nargin == 5)
+    face_loop = cell.faces(ncell,:);
+end
+
 
 xquad = cell.reconstruction_param.xquad;
 wquad = cell.reconstruction_param.wquad;
@@ -24,7 +31,7 @@ test = analytic_soln([0,0]);
 %wquad
 
 
-for n = 1 : length(face)
+for n = face_loop
 
   l_cell = face(n).cell_plus;
 

@@ -1,4 +1,4 @@
-function [resid] = compute_residual(cell, face, flux)
+function [resid] = compute_residual(cell, face, flux, ncell)
 % Compute the residual
 % Inputs :
 %          cell : cell structure required for sizing
@@ -8,6 +8,12 @@ function [resid] = compute_residual(cell, face, flux)
 % Outputs :
 %           resid : residual array of size cell.soln
 
+if (nargin == 3)
+    face_loop = 1:length(face);
+elseif (nargin == 4)
+    face_loop = cell.faces(ncell,:);
+end
+
 wquad = cell.reconstruction_param.wquad;
 
 % Initialize residual
@@ -16,7 +22,7 @@ for i = 1:size(cell.mms_source,2)
 end
 
 
-for n = 1:numel(face)
+for n = face_loop
 
   f = 0;
   for j = 1:length(wquad)

@@ -11,6 +11,8 @@
 % Ai*coef = ui
 %and
 % Ai = [1, map(i).x(xcc), map(i).y(xcc), map(i).x(xcc)*map(i).y(xcc),...]
+clear p A
+
 
 %some basic definitions
 dim = 2;
@@ -27,6 +29,7 @@ if kexact_order == 0
   kexact_type = 'kexact';
   fit_type    = 'kexact';
 end
+
 
 if strcmp(kexact_type,'kexact')
   cnt = 1;
@@ -71,11 +74,11 @@ if (kexact_order == 0)
   xcc_quad = [0.5,0.5];
   wcc = [1];
 else
-  [xcc_quad, wcc] = sparse_grid(dim, dim*kexact_order, method);
+  [xcc_quad, wcc] = sparse_grid(dim, dim*kexact_order+2, method);
 end
 
-for n = 1:cell.ncells
-  nnodes = cell.nodes(n,1);
+for nn = 1:cell.ncells
+  nnodes = cell.nodes(nn,1);
   if (nnodes == 3)
     % triangle quadrature
     % Transform the quadrature from a quad to a triangle 
@@ -90,16 +93,16 @@ for n = 1:cell.ncells
   end
 
   for nq = 1:length(wcc)
-    xq(1,1) = cell.map(n).x(xcc(nq,:));
-    xq(1,2) = cell.map(n).y(xcc(nq,:));
+    xq(1,1) = cell.map(nn).x(xcc(nq,:));
+    xq(1,2) = cell.map(nn).y(xcc(nq,:));
 
     A(nq,:) = Ai_row(xq)*wcc(nq);
   end
 
   Ai = sum(A);%.*cell.volume(n);
-  cell.reconstruction(n).Ai = Ai;
+  cell.reconstruction(nn).Ai = Ai;
 
-  cell.reconstruction(n).Axc = Ai_row(cell.xc(n,1:2));
+  cell.reconstruction(nn).Axc = Ai_row(cell.xc(nn,1:2));
 end
 
 % This is a logical. If Ai is changed as it is in this script then when reconstruct_solution is called, the lhs is rebuild

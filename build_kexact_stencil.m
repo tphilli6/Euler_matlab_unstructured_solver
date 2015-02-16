@@ -7,7 +7,8 @@ fprintf(['Building stencil for ',fit_type,' reconstruction\n'])
 
 % Reconstruction types based on what's set in equation_setup.m
 if strcmp(fit_type(1:3), 'lsq')
-  nstencil = cell.nunknowns + 1;
+  extra = floor(cell.nunknowns*1.5);
+  nstencil = cell.nunknowns + extra;
 elseif strcmp(fit_type, 'kexact')
   nstencil = cell.nunknowns;
 elseif strcmp(fit_type, 'extended')
@@ -16,13 +17,13 @@ elseif strcmp(fit_type, 'extended')
 end
 
 
-for n = 1:cell.ncells
+for nn = 1:cell.ncells
 
   %cells(1:nstencil)=0
   stn_cnt= 1;
-  cells(stn_cnt) = n; %assign current cell to stencil
+  cells(stn_cnt) = nn; %assign current cell to stencil
   cell_dup = [2];
-  nbrs_list = [n];
+  nbrs_list = [nn];
 
   while (stn_cnt<nstencil)
 
@@ -81,7 +82,7 @@ for n = 1:cell.ncells
     end
 
 
-  cell.stencil(n).cells = cells(1:nstencil);
+  cell.stencil(nn).cells = cells(1:nstencil);
 
 end
 
@@ -91,9 +92,9 @@ end
 %       cell.vtk_size
 %       cell.nodes
 %       cell.cell_type
-for n = 1:cell.ncells
+for nn = 1:cell.ncells
 
-  cells = cell.stencil(n).cells;
+  cells = cell.stencil(nn).cells;
   v_temp = [];
   cell_temp.ncells = length(cells);
 
@@ -143,9 +144,9 @@ for n = 1:cell.ncells
   cell_temp.vtk_size = sum(cell_temp.nodes(:,1)) + cell_temp.ncells;
 
 %write stencil to file
-  fid = fopen(['grid-stencil-',num2str(n),'.vtk'],'w');
-  write_vtk(vertex_temp, cell_temp, fid);
-  fclose(fid);
+%   fid = fopen(['grid-stencil-',num2str(nn),'.vtk'],'w');
+%   write_vtk(vertex_temp, cell_temp, fid);
+%   fclose(fid);
 
 end
 

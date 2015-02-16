@@ -4,11 +4,10 @@ addpath('./multiquad');
 
 % Set the equations to solve and parameters
 equation = 'euler';
-
 imax = 9;
 jmax = 9;
 iterations = 1000;
-CFL = 0.05;
+CFL = 0.15;
 toler = 1e-10;
 glb_dt = 0; %global time step, 1 = true, 0=false
 mms_number=1; %1=supersonic, 2=subsonic
@@ -19,7 +18,7 @@ source_term_order=6;
 exact_order=6;
 
 kexact_order = 2;
-flux_integral_order = 4;
+flux_integral_order = 10;
 kexact_type = 'kexact'; %'kexact', 'kexact_extended'
 %kexact_type = 'kexact_extended';
 % kexact : the sum of the exponents <= k

@@ -1,5 +1,5 @@
 function source = analytic_flux( vertex, cell, face, flux_func, neq,...
-                                 order)
+                                 order, ncell)
 % This function loops over the faces and computes the analytic source
 % term.
 % Inputs:
@@ -10,6 +10,12 @@ function source = analytic_flux( vertex, cell, face, flux_func, neq,...
 %         neq    : number of equations
 %         order  : quadrature order for source terms
 
+if (nargin == 6)
+    face_loop = 1:numel(face);
+elseif (nargin == 7)
+    face_loop = cell.faces(ncell,:);
+end
+
 % HARDWIRE : curtis-clenshaw quadrature points
 [xquad, wquad] = curtis_clenshaw( order );
 
@@ -19,7 +25,7 @@ cnt = zeros( numel(cell.volume) );
     %temp
 flux_check = zeros([numel(cell.volume),neq]);
 
-for n = 1:numel(face)
+for n = face_loop
 
   % store off face to prevent redudant memory access
   f = face(n);

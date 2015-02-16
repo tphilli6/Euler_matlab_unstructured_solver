@@ -10,7 +10,6 @@ function flux = euler_mms_flux(x, fun, normal)
 %
 % Outputs:
 %      flux : analytic flux
-
 rho = fun.rho(x);
 u = fun.u(x);
 v = fun.v(x);

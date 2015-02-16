@@ -1,5 +1,8 @@
 function [vertex, face, cell] = generate_mesh(imax, jmax, grid_type, neq)
 
+perturb = 0.0;
+seed = 0;
+
 x0 = 0;
 xL = 1;
 y0 = 0;
@@ -16,6 +19,15 @@ for n = 1:imax
   x(n,:) = xi(n);
   y(n,:) = eta;
 end
+
+rng(seed);
+dx = 1/(imax-1)*perturb;
+dy = 1/(jmax-1)*perturb;
+xdiff = 2*(rand( imax-2, jmax-2)-0.5)*dx;
+ydiff = 2*(rand( imax-2, jmax-2)-0.5)*dy;
+x(2:end-1,2:end-1) = x(2:end-1,2:end-1) + xdiff;
+y(2:end-1,2:end-1) = y(2:end-1,2:end-1) + ydiff;
+
 % Nozzle
 %eta = linspace(0,2*pi,jmax);
 %xi = linspace(x0,xL,imax);
