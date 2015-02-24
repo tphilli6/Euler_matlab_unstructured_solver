@@ -12,6 +12,129 @@ setup_mapping;
 setup_reconstruction;
 build_kexact_stencil;
 
+  base_order = kexact_order;
+  sten = base_order+2;
+  sten_width = floor( sten/2);
+  cnt2=1;
+  for jj = 1:jmax-1
+      for ii = 1:imax-1
+          iivec = (jj-1)*(imax-1) + ii;
+          
+          ilow = ii - sten_width;
+          ihigh = ilow + sten-1;
+          if (ilow<1)
+              ilow = 1;
+              ihigh = ilow + sten-1;
+          elseif (ihigh>imax-1)
+              ihigh = imax-1;
+              ilow = ihigh - (sten-1);
+          end
+          
+          jlow = jj - sten_width;
+          jhigh = jlow + sten-1;
+          if (jlow<1)
+              jlow = 1;
+              jhigh = jlow + sten-1;
+          elseif (jhigh>jmax-1)
+              jhigh = jmax-1;
+              jlow = jhigh - (sten-1);
+          end
+          
+          cnt = 1;
+          for jjj = jlow : jhigh
+              for iii = ilow : ihigh              
+                  iiivec = (jjj-1)*(imax-1) + iii;
+                  sub_sten(cnt) = iiivec;
+                  cnt = cnt + 1;
+              end
+          end  
+            cell.stencil(iivec).cells = sub_sten;
+
+            %             recon_sten(cnt2)=iivec;
+            %             cnt2 = cnt2 + 1;
+
+
+
+
+
+
+
+      end
+  end
+
+            % Write out the stencil in vtk format for inspection
+            % Need:
+            %       cell.ncells
+            %       cell.vtk_size
+            %       cell.nodes
+            %       cell.cell_type
+            for nn = 1:cell.ncells
+
+              cells = cell.stencil(nn).cells;
+              v_temp = [];
+              cell_temp.ncells = length(cells);
+
+              vrtx_list = [];
+              vrtx_cnt  = 0;
+              vertex_temp = [0,0,0];
+              for i = 1:length(cells)
+
+                cell_temp.cell_type(i) = cell.cell_type(cells(i)); %store cell type
+                nvertex = cell.nodes(cells(i),1);%store nvertex
+                vrtx = cell.nodes(cells(i),2:nvertex+1); %pull of vertex for cell
+
+                % Build vertex list for new cells
+                if isempty(vrtx_list) % if there is no current vertex list create one
+                  vrtx_list = vrtx; % list of absolute indicies
+                  vertex_temp(1:nvertex,:) = vertex(vrtx_list,:); % list of node locations
+                  vrtx_cnt = length(vrtx); % current number of nodes
+                  cell_temp.nodes = [nvertex,1:nvertex]; % store the nodes
+
+                else %else check if the vertex has already been used, if not concatinate it to the list
+                  vrtx_out_cnt = 1;
+                  cell_temp.nodes(i,1) = nvertex;
+                  for j = 1:length(vrtx)
+
+                    I = find(vrtx(j) == vrtx_list);
+                    if length(I)>0
+                      vrtx_out(1,vrtx_out_cnt) = I(1);
+                      vrtx_out_cnt = vrtx_out_cnt + 1;
+
+                    else
+                      vrtx_list = [vrtx_list, vrtx(j)];
+                      vrtx_cnt = vrtx_cnt + 1;
+
+                      vrtx_out(1,vrtx_out_cnt) = vrtx_cnt;
+                      vrtx_out_cnt = vrtx_out_cnt + 1;
+
+                      vertex_temp = [vertex_temp; vertex(vrtx(j),:)];
+
+                    end
+                  end
+                  cell_temp.nodes(i,:) = [nvertex, vrtx_out];
+
+                end
+
+              end
+
+              cell_temp.vtk_size = sum(cell_temp.nodes(:,1)) + cell_temp.ncells;
+
+            %write stencil to file
+              fid = fopen(['grid-stencil-',num2str(nn),'.vtk'],'w');
+              write_vtk(vertex_temp, cell_temp, fid);
+              fclose(fid);
+
+            end
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
 % Setup dirichlet bc -------------------------------------------------------------------------------
 % assigns the exact solution to apply a dirichlet bc computed later
 % Sets all faces to have an exact function, only the ones at boundaries are used
@@ -61,6 +184,14 @@ elseif restart == 1
 
 end
 
+if dc_estimate == 1
+    load('te_estimate.mat')
+    for ij = 1:size(te_smooth,2)
+       te_smooth(:,ij) = te_smooth(:,ij)./cell.volume';
+    end
+    cell.mms_source = cell.mms_source + te_smooth;
+    cell.primal = primal_soln;
+end
 
 
 % TIME LOOP ----------------------------------------------------------------------------------------
@@ -123,6 +254,28 @@ for iter = cell.iteration:cell.iteration + iterations - 1
 
 end
 
+% Write out solution
+write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
+write_vtk_solution( vertex, cell, resid, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
+
+% Compute discretization error and write to file
+write_vtk_solution( vertex, cell, cell.soln, 'soln', 'grid.vtk','a',var )
+
+de = cell.soln - cell.exact;
+write_vtk_solution( vertex, cell, de, 'exact-de', 'grid.vtk','a',var )
+
+if dc_estimate == 1
+    de_dc = cell.primal - cell.soln;
+    write_vtk_solution( vertex, cell, de_dc, 'dc-de', 'grid.vtk','a',var )
+end
+
+
+write_norms(de, 'exact-de')
+cell.iteration = iter+1;
+save('output_solution.mat','cell','vertex','face')
+
+
+if (dc_estimate==0)
 te_smooth_grid(cell, face, vertex, ...
                         kexact_order, ...
                         kexact_type, ...
@@ -131,18 +284,8 @@ te_smooth_grid(cell, face, vertex, ...
                         flux_integral_order,...
                         analytic_soln,...
                         flux);
+end
 
-% Write out solution
-write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
-write_vtk_solution( vertex, cell, resid, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
-
-% Compute discretization error and write to file
-de = cell.soln - cell.exact;
-write_vtk_solution( vertex, cell, de, 'exact-de', 'grid.vtk','a',eq )
-
-write_norms(de, 'exact-de')
-cell.iteration = iter+1;
-save('output_solution.mat','cell','vertex','face')
 
 
 

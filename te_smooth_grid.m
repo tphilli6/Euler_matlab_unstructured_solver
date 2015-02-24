@@ -10,16 +10,21 @@ function te_smooth_grid(cell, face, vertex, ...
 eq = {'mass','xmtm', 'ymtm', 'nrgy'};
 base_order = kexact_order;
 base_type  = kexact_type;
-base_fit_type = 'lsq-true';% fit_type;
+base_fit_type = fit_type;
 soln_old = cell.soln;
 cell_old = cell;
 face_old = face;
 vertex_old = vertex;
 
+% xmat = reshape(cell_old.xc(:,1),[8,8]);
+% ymat = reshape(cell_old.xc(:,2),[8,8]);
+% s = reshape(cell_old.soln(:,4), [8,8]);
+% v = reshape(cell_old.volume, [8,8]);
+
   % Step 1: compute a lsq reconstruction over a large stencil
   % - setup_reconstruction sets up the polynomial for the reconstruction
   kexact_order = te_order;
-  fit_type = base_fit_type;
+  fit_type = 'lsq';%base_fit_type;
   extra_terms = 12; % manually add more cells to the stencil. = 0 will be a kexact fit. This can be variable to play with the smoothness of the fit
 
   setup_reconstruction;
@@ -43,11 +48,12 @@ vertex_old = vertex;
   write_vtk_solution( vertex_old, cell_old, te_standard, 'te_estimate_k4', 'grid.vtk', 'a', eq )
 
 
-  
+
   % Step 1: compute a lsq reconstruction over a large stencil
   % - setup_reconstruction sets up the polynomial for the reconstruction
   kexact_order = te_order;
-  fit_type = 'lsq-true';
+  kexact_type  = base_type;
+  fit_type = 'lsq';
   extra_terms = 12; % manually add more cells to the stencil. = 0 will be a kexact fit. This can be variable to play with the smoothness of the fit
 
   setup_reconstruction;
@@ -66,7 +72,7 @@ vertex_old = vertex;
   cell = cell_old;
   
 for n = 1:cell.ncells
-
+fprintf('\nTE estimate for cell %4.0f\n',n);
   % Euler hardcode
   func.rho = @(x) pbase(x, higher_order_recon(n).coef(:,1), higher_order_recon_param.px, higher_order_recon_param.py);
   func.u = @(x)   pbase(x, higher_order_recon(n).coef(:,2), higher_order_recon_param.px, higher_order_recon_param.py);
@@ -83,7 +89,7 @@ for n = 1:cell.ncells
   face = face_old;
   
   kexact_order = base_order;
-  kexact_type  = base_type;
+  kexact_type  =  base_type;
   fit_type = base_fit_type;
 % 
 % %   cell.mms_source = analytic_flux(vertex, cell, face, exact_flux, neq,...
@@ -124,7 +130,7 @@ for n = 1:cell.ncells
 %   time1 = toc;
 %   fprintf('Evaluate higher order reconstruction over non-smooth cells %8.6f\n', time1)
   tic
-  % Step 4: Build a smooth grid class
+  % Step 4: Build a smooth grid classcell.ncells
   % Call to construct_te_smooth_stencil
   % sets
   %      subcell.nunknowns                  % polynomial unknowns
@@ -134,7 +140,7 @@ for n = 1:cell.ncells
   %      subcell.reconstruction_param.py    % y coefficients
   %      subcell.reconstuction.Ai           % integral over structured cell (smooth) geometry
   %      subcell.reconstruction.Axc         % reference integral location at cell center
-  [cell, face, vertex, icell] = construct_te_smooth_stencil(...
+  [cell, face, vertex, icell, cell_phy] = construct_te_smooth_stencil(...
                                  cell_old, face_old, vertex_old,...
                                  te_order, ...
                                  kexact_type, ...
@@ -150,18 +156,27 @@ for n = 1:cell.ncells
                                   flux_integral_order, ivec);
 
 
-  time2 = toc;
-%   fprintf('Generate the smooth cell stencil for the higher order evaluation %8.6f\n', time2)
-  tic
-
-
   
   % Step 5: Evaluate the higher order reconstruction over the smooth cell stencils. 
   for i = 1:cell.ncells
     for nneq = 1:size(higher_order_recon(n).coef,2)
-      cell.soln(i,nneq) = cell.reconstruction(i).Ai*higher_order_recon(n).coef(:,nneq);
+      cell.soln(i,nneq) = cell_phy.reconstruction(i).Ai*higher_order_recon(n).coef(:,nneq);
     end
   end
+
+%   
+% xmat = reshape(cell.xc(:,1),[imax_local,imax_local]);
+% ymat = reshape(cell.xc(:,2),[imax_local,imax_local]);
+% s = reshape(cell.soln(:,4), [imax_local,imax_local]);
+% v = reshape(cell.volume, [imax_local,imax_local]);
+% 
+% subplot(1,2,1)
+% surf(xmat,ymat,s)
+% view([0,0,90])
+% 
+% subplot(1,2,2)
+% surf(xmat,ymat,s./v)
+% view([0,0,90])
 
   % Step 6: Setup
   % Setup the grid classes for a second-order reconstruction
@@ -182,23 +197,45 @@ for n = 1:cell.ncells
   setup_reconstruction;
 %   build_kexact_stencil;
 
-
-  sten_width = floor(base_order/2);
+  sten = base_order+2;
+  sten_width = floor(sten/2);
   cnt2=1;
   for jj = row:row+2
       for ii = row:row+2
+%   for jj = 1:imax_local
+%       for ii = 1:imax_local
           iivec = (jj-1)*(imax_local) + ii;
           
+          ilow = ii - sten_width;
+          ihigh = ilow + sten;
+          if (ilow<1)
+              ilow = 1;
+              ihigh = ilow + sten;
+          elseif (ihigh>imax_local)
+              ihigh = imax_local;
+              ilow = ihigh - sten;
+          end
+          
+          jlow = jj - sten_width;
+          jhigh = jlow + sten;
+          if (jlow<1)
+              jlow = 1;
+              jhigh = jlow + sten;
+          elseif (jhigh>imax_local)
+              jhigh = imax_local;
+              jlow = jhigh - sten;
+          end
+          
           cnt = 1;
-          for jjj = jj-sten_width : jj-sten_width+base_order
-              for iii = ii-sten_width : ii-sten_width+base_order
+          for jjj = jlow : jhigh
+              for iii = ilow : ihigh              
                   iiivec = (jjj-1)*(imax_local) + iii;
                   sub_sten(cnt) = iiivec;
                   cnt = cnt + 1;
               end
           end  
             cell.stencil(iivec).cells = sub_sten;
-          
+
             recon_sten(cnt2)=iivec;
             cnt2 = cnt2 + 1;
       end
@@ -269,14 +306,16 @@ for n = 1:cell.ncells
 %   fprintf('Compute the residual over the smaller stencil smooth stencil %8.6f\n', time4)
 
   ivec = (icell-1)*(imax_local) + icell;
-  te_smooth(n,:) = te_temp(ivec,:);
+  te_smooth(n,:) = -te_temp(ivec,:);
 %   te_smooth(n,:) = cell.soln(ivec,:);
 %    te_smooth(n,:) = cell.mms_source(ivec,:);
-
-
+% R = reshape(te_temp(:,1), [imax_local,imax_local]);
+% surf(xmat(3:end-2,3:end-2),ymat(3:end-2,3:end-2),R(3:end-2,3:end-2))
+% view([0,0,90])
 %   fprintf('Total time for cell %4.0f: %8.6f\n', n, time1 + time2 + time3 + time4)
 end
 
 %   write_vtk_solution( vertex_old, cell_old, te_non_smooth, 'te_estimate_nonsmooth', 'grid.vtk', 'a', eq )
   write_vtk_solution( vertex_old, cell_old, te_smooth, 'te_estimate_smooth', 'grid.vtk', 'a', eq )
-
+primal_soln = cell_old.soln;
+save('te_estimate.mat','te_smooth','primal_soln')

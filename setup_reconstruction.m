@@ -74,7 +74,7 @@ if (kexact_order == 0)
   xcc_quad = [0.5,0.5];
   wcc = [1];
 else
-  [xcc_quad, wcc] = sparse_grid(dim, dim*kexact_order+2, method);
+  [xcc_quad, wcc] = sparse_grid(dim, dim*kexact_order, method);
 end
 
 for nn = 1:cell.ncells

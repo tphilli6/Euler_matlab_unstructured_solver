@@ -24,7 +24,7 @@ if (cell.lhs_set==0)
     stencil = cell.stencil(n).cells;
 
     % Build the left hand side
-    [Ainv, ~, A] = reconstruction_lhs(stencil, reconstruction, fit_type,0);
+    [Ainv, cond, A] = reconstruction_lhs(stencil, reconstruction, fit_type,0);
     reconstruction(n).Ainv = Ainv;
     reconstruction(n).A = A;
   end
@@ -47,7 +47,7 @@ for n = loop_cells
       % to the integral of the given polynomial over the cell.
 %       b(i,:) = cell.soln(ncell,:);
       b = cell.soln(stencil,:);
-  
+
 %     end
 
 
