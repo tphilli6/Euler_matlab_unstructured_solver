@@ -52,6 +52,19 @@ elseif strcmp(kexact_type,'kexact_extended')
     end
   end
   cell.nunknowns = size(p,2);
+elseif strcmp(kexact_type,'ts')
+      cnt = 1;
+      for n = 0:kexact_order
+        for m = 0:n
+          p(1,cnt) = m;
+          p(2,cnt) = n-m;
+          ts_coef(1,cnt) = 1/factorial(n)*factorial(n)/(factorial(m)*factorial(n-m));
+          cnt = cnt + 1;
+        end
+      end
+      cell.nunknowns = size(p,2);
+    
+    
 else
   error('Incorrect kexact_type!')
 end

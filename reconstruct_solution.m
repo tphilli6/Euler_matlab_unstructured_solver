@@ -25,6 +25,8 @@ if (cell.lhs_set==0)
 
     % Build the left hand side
     [Ainv, cond, A] = reconstruction_lhs(stencil, reconstruction, fit_type,0);
+%     [Ainv2, ~, A2] = ts_2d_reconstruction(cell, n, 2);
+    
     reconstruction(n).Ainv = Ainv;
     reconstruction(n).A = A;
   end

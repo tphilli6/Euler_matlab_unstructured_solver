@@ -19,7 +19,7 @@ for i = 1:length(stencil);
   % The first coefficient is equal to u_i
   if strcmp(fit_type,'lsq')
     A(i,:) = A(i,:) - reconstruction(stencil(1)).Axc;
-    %A(i,:) = A(i,:) - A(1,:);    
+    %A(i,:) = A(i,:) - A(1,:);
   end
 
 end

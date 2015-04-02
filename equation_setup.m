@@ -6,14 +6,14 @@ addpath('./multiquad');
 equation = 'euler';
 imax = 17;
 jmax = 17;
-iterations = 1000;
-CFL = 0.15;
+iterations = 1;
+CFL = 0.0;
 toler = 1e-10;
 glb_dt = 0; %global time step, 1 = true, 0=false
 mms_number=1; %1=supersonic, 2=subsonic
-grid_type = 0; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
-restart = 1;
-dc_estimate = 1;
+grid_type = 1; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
+restart = 0;
+dc_estimate = 0;
 
 source_term_order=6;
 exact_order=6;

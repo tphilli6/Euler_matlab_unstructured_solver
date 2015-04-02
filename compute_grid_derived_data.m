@@ -1,93 +1,40 @@
-function [vertex, cell, face] = compute_grid_derived_data(x,y, grid_type)
-
-imax = size(x,1);
-jmax = size(x,2);
-
-%Define general grid type -----------------------------------------------------
-%grid_type=0;%quads = 0, triangles = 1, mixed = 2
-
-% cell type is an array to define a mixed cell type later if needed
-if (grid_type == 0)
-  ncells = (imax-1)*(jmax-1);
-  cell.cell_type(1:ncells) = 0;
-
-elseif (grid_type == 1)
-  ncells = (imax-1)*(jmax-1)*2; %For triangles
-  cell.cell_type(1:ncells) = 1;
-
-elseif (grid_type == 2)
-  nquads = (imax-1)*(jmax-1)/2;
-  ntri   = (imax-1)*(jmax-1);
-  ncells = nquads + ntri;
-  cell.cell_type(1:nquads) = 0;
-  cell.cell_type(nquads+1:ncells) = 1;
-end
-
-
-% Some parameters and useful functions
-max_nsize = 5; % max size to define cell connectivity + 1
-ij_to_vec = @(i,j) (j-1)*imax + i; %i,j location to cell vector location
+function [vertex, cell, face] = compute_grid_derived_data(x,y, grid_type, ti)
 
 
 
 % Store cell vertex
-cnt = 1;
-for j = 1:jmax
-  for i = 1:imax
-    vertex(cnt,:) = [x(i,j),y(i,j),0];
-    cnt = cnt + 1;
-  end
+vertex = [ reshape(x,[numel(x),1]), reshape(y, [numel(y),1]), zeros(numel(x),1) ];
+
+
+if nargin<4 % tip not set
+    ti = generate_ordered_mesh(x,grid_type); 
 end
+    
 
-
-% Write out connectivity
-cnt = 1;
-cell.nodes = zeros(ncells,max_nsize);
-cell.size = 0;
-for j = 1:jmax-1
-  for i = 1:imax-1
-
-   % Simple quads
-   if (cell.cell_type(cnt) == 0)
-     cell.nodes(cnt,1) = 4;
-     cell.nodes(cnt,2:5) =[ij_to_vec(i,j),...
-                            ij_to_vec(i+1,j),...
-                            ij_to_vec(i+1,j+1),...
-                            ij_to_vec(i,j+1) ];
-     cell.type(cnt) = 9; %quad
-     cnt = cnt + 1;
-
-   elseif (cell.cell_type(cnt) == 1)
-     % Triangle 1
-     cell.nodes(cnt,1) = 3;
-     cell.nodes(cnt,2:4) =[ij_to_vec(i,j+1),...
-                                  ij_to_vec(i,j),...
-                                  ij_to_vec(i+1,j)];
-     cell.type(cnt) = 5; %triangle
-     cnt = cnt + 1;
-
-     % Triangle 2
-     cell.nodes(cnt,1) = 3;
-     cell.nodes(cnt,2:4) = [ij_to_vec(i,j+1), ...
-                                   ij_to_vec(i+1,j),...
-                                   ij_to_vec(i+1,j+1) ];
-     cell.type(cnt) = 5; %triangle
-     cnt = cnt + 1;
-
-   end
-
-
-  end
+for i = 1:size(ti,1)
+    I = find(ti(i,:)~=0);
+    cell.nodes(i,:) = [length(I),ti(i,:)];
+    if length(I) == 3
+        cell.type(i) = 5;
+        cell.cell_type(i) = 1;
+    elseif length(I) == 4
+        cell.type(i) = 9;
+        cell.cell_type(i) = 0;
+    end
 end
-cell.ncells = cnt-1;
+cell.ncells = size(ti,1);
 cell.vtk_size = sum(cell.nodes(:,1)) + cell.ncells;
-
+max_nsize = 5;
 
 
 %% Loop through connectivity data to assemble faces
+% I wrote a more efficient routine to extract the cell and face
+% connectivity but I don't feel like making it work with the new routine...
+% [face_list, cell_faces, face_cells] = find_neighbors(ti);
+
 nface = 1;
 face.nodes = []; % Initialize but not in memory
-all_faces = zeros(cell.ncells,max_nsize);
+all_faces = zeros(size(ti));
 face_cnt=1;
 for nc = 1:cell.ncells % List out faces -simply adds initial face to list to close the polygon
   all_faces(nc,1:cell.nodes(nc,1)+1) = [cell.nodes(nc,2:cell.nodes(nc,1)+1),cell.nodes(nc,2)];
