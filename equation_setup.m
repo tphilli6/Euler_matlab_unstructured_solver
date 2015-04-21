@@ -6,20 +6,21 @@ addpath('./multiquad');
 equation = 'euler';
 imax = 17;
 jmax = 17;
-iterations = 1;
-CFL = 0.0;
+iterations = 1000;
+CFL = .05;
 toler = 1e-10;
 glb_dt = 0; %global time step, 1 = true, 0=false
 mms_number=1; %1=supersonic, 2=subsonic
 grid_type = 1; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
 restart = 0;
 dc_estimate = 0;
+vertex_centered = 1;
 
 source_term_order=6;
 exact_order=6;
 
-kexact_order = 1;
-flux_integral_order = 6;
+kexact_order = 0;
+flux_integral_order = 1;
 kexact_type = 'kexact'; %'kexact', 'kexact_extended'
 %kexact_type = 'kexact_extended';
 % kexact : the sum of the exponents <= k

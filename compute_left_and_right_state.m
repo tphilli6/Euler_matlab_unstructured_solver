@@ -52,7 +52,6 @@ for n = face_loop
       for i = 1:size(coef,2)
         % evaluate the reconstruction at the quadrature points
         face(n).ul(j,i) = sum( coef(:,i)'.*x(1).^px.*x(2).^py );
-
       end
 
 

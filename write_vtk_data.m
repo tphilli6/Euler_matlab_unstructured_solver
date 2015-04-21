@@ -11,7 +11,7 @@ function write_vtk_data(data, name, fid)
 
 
 % Write out data points, doesn't matter what cell type
-%fprintf(fid,'CELL_DATA %8.0f\n',length(data));
+% fprintf(fid,'POINT_DATA %8.0f\n',length(data));
 fprintf(fid,['SCALARS ',name,' double 1\n'],length(data));
 fprintf(fid,'LOOKUP_TABLE default\n');
 

@@ -103,13 +103,22 @@ for nn = 1:cell.ncells
   elseif (nnodes == 4)
     % quad quadrature
     xcc = xcc_quad;
+  else
+    xcc = vertex_grid(nn,:); % Use the node of the regular grid.
+      
   end
 
-  for nq = 1:length(wcc)
-    xq(1,1) = cell.map(nn).x(xcc(nq,:));
-    xq(1,2) = cell.map(nn).y(xcc(nq,:));
+  if (nnodes ==3 || nnodes == 4);
+      
+      for nq = 1:length(wcc)
+        xq(1,1) = cell.map(nn).x(xcc(nq,:));
+        xq(1,2) = cell.map(nn).y(xcc(nq,:));
 
-    A(nq,:) = Ai_row(xq)*wcc(nq);
+        A(nq,:) = Ai_row(xq)*wcc(nq);
+      end
+  else
+      A(1,:) = Ai_row(xcc);
+      
   end
 
   Ai = sum(A);%.*cell.volume(n);
