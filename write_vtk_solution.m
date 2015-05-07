@@ -5,7 +5,7 @@ fid = fopen(file_name,attribute);
 
 if (attribute=='w')
   write_vtk(vertex, cell, fid);
-  fprintf(fid,'CELL_DATA %8.0f\n',size(data(:,1)) );
+  fprintf(fid,'CELL_DATA %8.0f\n',size(data(:,1),1) );
 end
 
 

@@ -25,22 +25,22 @@ exact = zeros(cell.ncells,neq);
 for n = 1:cell.ncells
 
   % Use simple geometric average of nodes to find the cell center
-%   nc = cell.nodes(n,1);
-%   if (nc==3) % triangles
-%     xcc = xcc_tri;
-%   elseif (nc==4) % quadrilateral
-%     xcc = xcc_quad;
-%   end
-    nnodes = cell.nodes(n,1);
-    xcc(1) = mean(vertex( cell.nodes(n,2:nnodes+1), 1));
-    xcc(2) = mean(vertex( cell.nodes(n,2:nnodes+1), 2));
-    exact(n,:) = analytic_soln(xcc);
-%   for i = 1:length(wcc)
-%     x(1) = cell.map(n).x(xcc(i,:));
-%     x(2) = cell.map(n).y(xcc(i,:));
-% 
-%     exact(n, :) = exact(n, :) + analytic_soln(x).*wcc(i);
-%   end
+  nc = cell.nodes(n,1);
+  if (nc==3) % triangles
+    xcc = xcc_tri;
+  elseif (nc==4) % quadrilateral
+    xcc = xcc_quad;
+  end
+%     nnodes = cell.nodes(n,1);
+%     xcc(1) = mean(vertex( cell.nodes(n,2:nnodes+1), 1));
+%     xcc(2) = mean(vertex( cell.nodes(n,2:nnodes+1), 2));
+%     exact(n,:) = analytic_soln( xcc );
+  for i = 1:length(wcc)
+    x(1) = cell.map(n).x(xcc(i,:));
+    x(2) = cell.map(n).y(xcc(i,:));
+
+    exact(n, :) = exact(n, :) + analytic_soln(x).*wcc(i);
+  end
 
 end
 

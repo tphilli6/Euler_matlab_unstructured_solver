@@ -1,12 +1,16 @@
-function [vertex, face, cell, vertex_cv, face_cv, cell_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered)
+function [vertex, face, cell, vertex_cv, face_cv, cell_cv, cell_all, all_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered, r)
 
 perturb = 0.0;
 seed = 0;
 
 if (grid_type==1)
-    [ti, xi, icell] = generate_equilateral_mesh(3);
-    [face_nodes] = find_neighbors(ti);
-    for n=1:0
+%     [ti, xi, icell] = generate_equilateral_mesh(2);
+    load('circle_mesh-201.mat')
+    xi=x;
+    
+    
+    for n=1:r-1
+        [face_nodes] = find_neighbors(ti);
 %         for j = 1:size(ti,1)
 %             xi_c(j,1) = mean( xi(ti(j,:),1) );
 %             xi_c(j,2) = mean( xi(ti(j,:),2) );
@@ -32,7 +36,11 @@ if (grid_type==1)
     
     
     %% Build unstructured grid ----------------------------------------------------
-    [vertex, cell, face] = compute_grid_derived_data(xi(:,1),xi(:,2), grid_type, ti);
+%     [vertex, cell, face] = compute_grid_derived_data(xi(:,1),xi(:,2), grid_type, ti);
+    
+    [ti, vertex] = delaunay_triangulation( xi(:,1),xi(:,2) );
+    vertex = [vertex,zeros(size(vertex(:,1)))];
+    [face, cell] =  compute_face_data_from_triangulation(ti,vertex);
         
 else
     
@@ -81,6 +89,7 @@ else
 
     %% Build unstructured grid ----------------------------------------------------
     [vertex, cell, face] = compute_grid_derived_data(x,y, grid_type);
+    
 
     
 end
@@ -93,40 +102,85 @@ end
 % trianglation
 if vertex_centered
     ncells = size(vertex,1);
+    xi = vertex;
+    lxi = ncells;
+    
     
     for i = 1:size(cell.nodes,1)
        n = cell.nodes(i,1);
-       xcc(i,1) =  mean( vertex(cell.nodes(i,2:n+1),1) );
-       xcc(i,2) =  mean( vertex(cell.nodes(i,2:n+1),2) );
+       xcc(i,1) =  mean( xi(cell.nodes(i,2:n+1),1) );
+       xcc(i,2) =  mean( xi(cell.nodes(i,2:n+1),2) );
        xcc(i,3) = 0;
+       xcc_node(i,1) = lxi+i;
     end
-
+    xi = [xi; xcc];
+    lxi = size(xi,1);
+    
     for i = 1:length(face)
        xfc(i,1) =  mean( vertex(face(i).nodes,1) );
        xfc(i,2) =  mean( vertex(face(i).nodes,2) );
        xfc(i,3) = 0;
+       xfc_node(i,1) = lxi+i;
     end
+    xi = [xi; xfc];
+    
+    cnt = 1;
+    lvertex = size(vertex,1);
+    for i = 1:size(cell.nodes,1)
+        nn = cell.nodes(i,1);
+        nodes = cell.nodes(i,2:nn+1);
+        ff = cell.faces(i,:);
+        
+        for j = 1:length(ff)
+          fnodes(j,:) = face(ff(j)).nodes;
+        end
+        
+        lxc = xcc_node(i);
+        
+        nodes = [nodes,nodes(1)];
+       for j = 1:nn
+           [~,~,Iface] = intersect( [nodes(j),nodes(j+1);nodes(j+1),nodes(j)],...
+                                   fnodes, 'rows' );
+           
+           lfc = xfc_node(ff(Iface));
+                               
+           ti_tri(cnt,:) = [nodes(j), lfc, lxc];
+           cnt = cnt + 1;
+           
+           ti_tri(cnt,:) = [lxc, lfc, nodes(j+1)];
+           cnt = cnt + 1;
+       end
+     
+       
+    end
+    ti = ti_tri;
+    
 
-    xvc = [vertex; xcc; xfc];
-    [ti,xi] = delaunay_triangulation(xvc(:,1),xvc(:,2));
+   
+    
+%     xvc = [vertex(:,1:2); xcc; xfc];
+%     [ti,xi] = delaunay_triangulation(xvc(:,1),xvc(:,2));
 
     % Remove the faces connected to the original nodes
     % Extract faces
 
-    [face_nodes, cell_faces, face_cells] = find_neighbors(ti);
-    nxfc = size(xfc,1);
-    n = size(vertex,1)+size(xcc,1)+1;
-    for i = n : size(xvc,1)
-      face_connected_to_face = sort([i*ones(nxfc-1,1), [n:i-1, i+1:size(xvc,1)]'],2,'ascend');
-      [f, IA, IB] = intersect(face_connected_to_face,face_nodes,'rows');
-      for j = 1:length(IB)
-         [ti, face_nodes, face_cells] = delaunay_face_swap(face_cells(IB(j),1), face_cells(IB(j),2), IB(j), ti, face_nodes, face_cells, xi(:,1:2));
-      end
-
-    end
-
-    [vertex_cv, cell_all, face_all] = compute_grid_derived_data(xi(:,1),xi(:,2), grid_type, ti);
-
+%     [face_nodes, cell_faces, face_cells] = find_neighbors(ti);
+%     nxfc = size(xfc,1);
+%     n = size(vertex,1)+size(xcc,1)+1;
+%     for i = n : size(xvc,1)
+%       face_connected_to_face = sort([i*ones(nxfc-1,1), [n:i-1, i+1:size(xvc,1)]'],2,'ascend');
+%       [f, IA, IB] = intersect(face_connected_to_face,face_nodes,'rows');
+%       for j = 1:length(IB)
+%          [ti, face_nodes, face_cells] = delaunay_face_swap(face_cells(IB(j),1), face_cells(IB(j),2), IB(j), ti, face_nodes, face_cells, xi(:,1:2));
+%       end
+% 
+%     end
+    
+    ti = order_nodes(ti,xi);
+%     [vertex_cv, cell_all, face_all] = compute_grid_derived_data(xi(:,1),xi(:,2), grid_type, ti);
+    [face_all, cell_all] =  compute_face_data_from_triangulation(ti,xi);
+    vertex_cv = xi;
+    
     % Now that all cells are connected to the original nodes, remove the
     % nodes from the cell connectivity
 
@@ -139,6 +193,7 @@ if vertex_centered
             cell_nbr(j) = rem(I(j),size(ti,1));
             if (cell_nbr(j)==0); cell_nbr(j)=size(ti,1); end
             cell_nc.volume(i) = cell_nc.volume(i) + abs(cell_all.volume(cell_nbr(j)));
+            all_to_cv(i,j) = cell_nbr(j);
         end
         nodes = unique(ti(cell_nbr,:))';
         cell_nc.cell_type(i) = 2; % generic polygon
@@ -183,9 +238,9 @@ if vertex_centered
 
                 % Transfer constant face parameters
                 face_nc(f(jj)).nodes = fn;
-                face_nc(f(jj)).area  = A;
                 face_nc(f(jj)).normal = normal;
-
+                face_nc(f(jj)).area   = A;
+                
                 % Update the cell plus and cell minus for the node centered
                 % cell indexing
                 if (cp==cell_nbr(j))
@@ -203,9 +258,6 @@ if vertex_centered
         end
 
        % loop over and count the number of cell node i is connected to
-       % if = 12 then interior node and remove the node from all cells and
-       % form a single cell
-       % if < 12 then boundary node
 
        % Set
        % cell.soln  - solution
@@ -223,33 +275,163 @@ if vertex_centered
               rs1 = [j+1; Ifn2+1];
               rs2 = [Ifn2+1; j+1];
               fn_vec(rs1,:) = fn_vec(rs2,:);
-
        end
 
        if ~isempty(fn_vec)
          ti_nc(i,1:size(fn_vec,1)) = fn_vec(:,1)';
        end
+
     end
 
-    cell_cv = cell_nc;
-    face_cv = face_nc;
+
+    % Check order of ti_nc
+    for i = 1:size(ti_nc,1)
+        cn = ti_nc(i,:);
+        Icn = find(cn~=0);
+        lcn = length(Icn);
+        xc = mean(vertex_cv(cn(Icn),1:2),1);
+        A = compute_area(xc(1), xc(2), ...
+                         vertex_cv(cn(1),1), vertex_cv(cn(1),2), ...
+                         vertex_cv(cn(2),1), vertex_cv(cn(2),2) );
+        if A<0
+            ti_nc(i,1:lcn) = fliplr(ti_nc(i,1:lcn));
+        end
+        
+    end
+    
+     [face_nodes, cell_faces, face_cells] = find_neighbors(ti_nc);
+     cell_cv.volume = cell_nc.volume;
+     cell_cv.cell_type = cell_nc.cell_type;
+     cell_cv.faces = cell_faces;
+     for i = 1:size(cell_faces,1)
+         I = find(cell_faces(i,:)~=0);
+         cell_cv.nface(i) = length(I);
+     end
+     
+     
+
+     for i = 1:length(face_cells)
+         face_cv(i).nodes = face_nodes(i,:);
+         fn = face_nodes(i,:);
+         
+         if (face_cells(i,2)==0);
+             face_cells(i,2) = face_cells(i,1);
+             face_cells(i,1) = -1;
+            
+             %Check to see if neg/pos nodes are correct
+             cp = face_cells(i,2);
+             cn = ti_nc(cp,:);
+             Icn = find(cn~=0);
+             cn = [cn(Icn),cn(1)];
+             In = find(fn(1) == cn,1);
+             if (cn(In+1) ~= fn(2))
+                 face_nodes(i,:) = fliplr(face_nodes(i,:));
+             end
+             
+         else
+             %Check to see if neg/pos nodes are correct
+             cp = face_cells(i,2);
+             cn = ti_nc(cp,:);
+             Icn = find(cn~=0);
+             cn = [cn(Icn),cn(1)];
+             In = find(fn(1) == cn,1);
+             if (cn(In+1) ~= fn(2))
+                 face_cells(i,:) = fliplr(face_cells(i,:));
+             end
+         end
+         
+         face_cv(i).cell_plus = face_cells(i,2);
+         face_cv(i).cell_neg  = face_cells(i,1);
+         
+         ds_vec = vertex_cv(face_nodes(i,2),:) - vertex_cv(face_nodes(i,1),:);
+         face_cv(i).area = sqrt( sum(ds_vec.^2) );
+         face_cv(i).normal(1:2) = [ ds_vec(2), -ds_vec(1) ]/face_cv(i).area;
+     end
+     
+%     cell_cv = cell_nc;
+%     face_cv = face_nc;
+    
     cell_cv.nodes(:,2:size(ti_nc,2)+1) = ti_nc;
-    for i = 1:size(ti_nc,1); 
+    for i = 1:size(ti_nc,1);
         I = find(ti_nc(i,:)~=0);
         cell_cv.nodes(i,1) = length(I);
-        cell_cv.xc(i,:) = vertex(i,1:2);
+        cell_cv.xc(i,:) = mean(vertex_cv(ti_nc(i,I),1:2),1);
     end
     cell_cv.ncells = length(cell_cv.volume); %Find number of control volumes
     cell_cv.vtk_size = sum(cell_cv.nodes(:,1)) + cell_cv.ncells;
 
-    
+
+
 else
     vertex_cv = vertex;
     cell_cv = cell;
     face_cv = face;
+    cell_all = cell;
+    all_to_cv = [1:length(cell.volume)]';
     
 end
 
+
+for j = 1:length(face_cv)
+   cell_nbrs(j,1) = face_cv(j).cell_plus;
+   cell_nbrs(j,2) = face_cv(j).cell_neg;
+end
+
+for i = 1:cell_cv.ncells
+    nnbr = 0;
+    nbrs_pos = [];
+    I = find(cell_nbrs==i);
+    for j = 1:length(I)
+        icell = rem(I(j),length(face_cv)); if icell == 0; icell=length(face_cv); end
+        % Then left column of cell_nbrs
+        nbrs_pos = [nbrs_pos; cell_nbrs(icell,:)];
+    end
+    
+    Inbrs = find( nbrs_pos ~= i & nbrs_pos~=-1 );
+    nbr = unique(nbrs_pos(Inbrs));
+    cell_cv.nnbr(i) = length(nbr);
+    cell_cv.nbrs(i,1:cell_cv.nnbr(i)) = nbr;
+    
+    
+end
+
+% Loop over cells
+% for i = 1:cell_cv.ncells
+%    % Loop over faces
+%    nbrs = [];
+%    nnbr = 0;
+%    for j = 1:size(face_cv,2)
+%        
+%        % If there are two faces then find the one that's not the current
+%        % cell
+%        I = find(cell_cv.faces==j);
+%        if length(I)==2
+%            icell1 = rem(I(1),cell_cv.ncells);if icell1 == 0; icell1=cell_cv.ncells; end;
+%            icell2 = rem(I(2),cell_cv.ncells);if icell2 == 0; icell2=cell_cv.ncells; end;
+%            
+%            if icell1 == i || icell2 == i
+%                % Loop over the two faces
+%                for ii = 1:length(I)
+%                    icell = rem(I(ii),cell_cv.ncells); % Translate the linear index into a row index
+%                    if icell == 0; icell=cell_cv.ncells; end;
+% 
+%                    %If the row index corresponds to not the current cell then
+%                    %increment nnbr and add to the nbrs cell list
+%                    if icell~=i
+%                        nnbr = nnbr + 1;
+%                        nbrs(1:nnbr) = [nbrs(1:nnbr-1), icell];
+%                    end
+%                end
+%            end
+%        end
+%        
+%    end
+%    [C] = unique(nbrs);
+%    cell_cv2.nnbr(i) = length(C);
+%    cell_cv2.nbrs(i,1:cell_cv.nnbr(i)) = C;
+%    cell_cv2.nbrs(i,1:cell_cv.nnbr(i))
+%    cell_cv.nbrs(i,:)
+% end
 
 
 %% Write grid to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

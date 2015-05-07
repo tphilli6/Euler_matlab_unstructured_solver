@@ -7,6 +7,8 @@ function [A] = build_lhs(stencil, reconstruction, fit_type)
 %           fit_type               : special case if fit_type = 'lsq'
 
 
+
+
 for i = 1:length(stencil);
   ncell = stencil(i);
   % Combine the rows associated with each cell in the stencil related 

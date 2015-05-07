@@ -24,12 +24,6 @@ face = face_in;
 % Get the number of equations
 test = analytic_soln([0,0]);
 
-% debug print
-%cell.reconstruction_param.px
-%cell.reconstruction_param.py
-%xquad
-%wquad
-
 
 for n = face_loop
 
@@ -48,17 +42,13 @@ for n = face_loop
       x(1) = (x2(1) - x1(1)) .* xquad(j) + x1(1);
       x(2) = (x2(2) - x1(2)) .* xquad(j) + x1(2);
  
-      % loop over the number of equations
-      for i = 1:size(coef,2)
-        % evaluate the reconstruction at the quadrature points
-        face(n).ul(j,i) = sum( coef(:,i)'.*x(1).^px.*x(2).^py );
-      end
+      face(n).ul(j,:) = ( (x(1)-cell.xc(l_cell,1)).^px.*(x(2)-cell.xc(l_cell,2)).^py )*coef;
+%       face(n).ul(j,:) = ( (x(1)).^px.*(x(2)).^py )*coef;
+
+
 
 
     end
-  % First order
-  %face(n).ul = cell.soln(l_cell, :);
-
 
 
   r_cell = face(n).cell_neg;
@@ -71,12 +61,10 @@ for n = face_loop
       % x mapping
       x(1) = (x2(1) - x1(1)) .* xquad(j) + x1(1);
       x(2) = (x2(2) - x1(2)) .* xquad(j) + x1(2);
- 
-      % loop over the number of equations
-      for i = 1:size(coef,2)
-        % evaluate the reconstruction at the quadrature points
-        face(n).ur(j,i) = sum( coef(:,i)'.*x(1).^px.*x(2).^py );
-      end
+
+      face(n).ur(j,:) = ( (x(1)-cell.xc(r_cell,1)).^px.*(x(2)-cell.xc(r_cell,2)).^py )*coef;
+%        face(n).ur(j,:) = ( (x(1)).^px.*(x(2)).^py )*coef;
+
 
     end
 
@@ -89,6 +77,10 @@ for n = face_loop
     x1 = vertex(face(n).nodes(1),1:2);
     x2 = vertex(face(n).nodes(2),1:2);
 
+%     hold on
+%     plot([x1(1),x2(1)],[x1(2),x2(2)],'r-*')
+%     xcc = [ (x1(1)+x2(1))/2, (x1(2)+x2(2))/2 ];
+%     quiver(xcc(1),xcc(2),face(n).normal(1),face(n).normal(2))
 
     for i = 1:length(wquad)
 
@@ -96,7 +88,7 @@ for n = face_loop
       % x mapping
       x(1) = (x2(1) - x1(1)) .* xquad(i) + x1(1);
       x(2) = (x2(2) - x1(2)) .* xquad(i) + x1(2);
- 
+      
       soln(i,:) = analytic_soln(x);
     end
 

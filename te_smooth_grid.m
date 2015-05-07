@@ -12,13 +12,13 @@ itermax = 1;
 eq = {'mass','xmtm', 'ymtm', 'nrgy'};
 
 
-base_order = kexact_order;
-base_type  = kexact_type;
-base_fit_type = fit_type;
-soln_old = cell.soln;
-cell_old = cell;
-face_old = face;
-vertex_old = vertex;
+% base_order = kexact_order;
+% base_type  = kexact_type;
+% base_fit_type = fit_type;
+% soln_old = cell.soln;
+% cell_old = cell;
+% face_old = face;
+% vertex_old = vertex;
 
 % xmat = reshape(cell_old.xc(:,1),[8,8]);
 % ymat = reshape(cell_old.xc(:,2),[8,8]);

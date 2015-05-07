@@ -1,20 +1,18 @@
 %% Script to run an unstructured solver
 clc
 % clear all
+clear resid update
 
 equation_setup
 
 % Generates the simple mesh for the solver, also saves it as a vtk grid file. 
 % While not currently operational, can add a vtk input for a more general solution
-[vertex, face, cell, vertex_cv, face_cv, cell_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered);
-vertex_grid=vertex;
-face_grid=face;
-cell_grid=cell;
-vertex=vertex_cv;
-face=face_cv;
-cell=cell_cv;
+[vertex_grid, face_grid, cell_grid, vertex, face, cell, cell_tri, cell_tri_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered,1);
+% load('vc_mesh3.mat')
+
+% save('vc_mesh3.mat','vertex_grid','face_grid','cell_grid','vertex','face','cell','cell_tri','cell_tri_to_cv')
+% load('vc_mesh4.mat')
 % Computes the cell mapping required for quadratures
-setup_mapping;
 setup_reconstruction;
 write_sten=1;
 build_kexact_stencil;
@@ -42,7 +40,7 @@ if vertex_centered;   data_write = vertex_to_cell_average(cell.mms_source,cell_g
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'source', 'grid.vtk', 'a', eq )
 
 % Setup and Compute the Exact Solution --------------------------------------------------------------
-cell.exact = analytic_solution(vertex, cell, exact_order, analytic_soln);
+cell.exact = compute_analytic_exact(cell_tri, vertex, exact_order, analytic_soln, cell_tri_to_cv);
 if vertex_centered;   data_write = vertex_to_cell_average(cell.exact,cell_grid); else data_write=cell.exact; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'exact', 'grid.vtk','a',var )
 
@@ -50,7 +48,7 @@ write_vtk_solution( vertex_grid, cell_grid, data_write, 'exact', 'grid.vtk','a',
 % Initializes the exact solution and computes the discrete residual to get the exact te
 cell.soln = cell.exact;
 
-reconstruction = reconstruct_solution(cell, fit_type);
+reconstruction = reconstruct_solution(cell, fit_type, 1);
 cell.reconstruction = reconstruction;
 face_out = compute_left_and_right_state(vertex, cell, face,...
                                         analytic_soln);
@@ -113,7 +111,7 @@ for iter = cell.iteration:cell.iteration + iterations - 1
 
   % Compute the reconstruction
 %  cell.soln = exact;
-  [reconstruction, cell.lhs_set] = reconstruct_solution(cell, fit_type);
+  [reconstruction, cell.lhs_set] = reconstruct_solution(cell, fit_type, 1);
   cell.reconstruction = reconstruction;
   
   
@@ -157,8 +155,13 @@ for iter = cell.iteration:cell.iteration + iterations - 1
   end
  
 %  % Write out new solution
-%  write_vtk_solution( vertex, cell, cell.soln, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
-%  write_vtk_solution( vertex, cell, abs(resid), 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
+
+
+    if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid); else data_write=cell.soln; end;
+    write_vtk_solution( vertex_grid, cell_grid, data_write, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
+    
+    if vertex_centered;   data_write = vertex_to_cell_average(resid,cell_grid); else data_write=resid; end;
+    write_vtk_solution( vertex_grid, cell_grid, data_write, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
  
 
 end
@@ -209,6 +212,17 @@ if (dc_estimate==0)
 %                         flux_integral_order,...
 %                         analytic_soln,...
 %                         flux);
+
+te = te_kexact_estimate(cell, face, vertex, ..., ...
+                                kexact_type, ...
+                                fit_type, ...
+                                kexact_order+1,...
+                                flux_integral_order,...
+                                analytic_soln,...
+                                flux,...
+                                eq_flux,...
+                                vertex_centered,...
+                                cell_grid);
 end
 
 

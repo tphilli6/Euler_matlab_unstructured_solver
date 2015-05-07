@@ -1,20 +1,23 @@
-function [Alhs,cond_num,A] = reconstruction_lhs(stencil, reconstruction,...
-                                           fit_type, test)
+function [Alhs,cond_num,A, wij] = reconstruction_lhs(stencil, n, reconstruction_param, xc, ...
+                                           fit_type, test, ge_terms)
 % This function is the companion of reconstruct_solution. The exact routine is needed to check the condition number of the stencil
 
 Alhs = 0;
 
-A = build_lhs(stencil, reconstruction, fit_type);
+% A = build_lhs(stencil, reconstruction, fit_type);
+p = [reconstruction_param.px; reconstruction_param.py];
+[A, wij] = compute_reconstruction_lhs(stencil,n, reconstruction_param.moment, p, xc, ge_terms);
+
 
 % If a lsq fit then compute the left hand side for a non-square matrix
 % Ax = b => x = (A'A)^(-1) A' b
 if strcmp(fit_type(1:3),'lsq')
 
   if strcmp(fit_type,'lsq')
-    Alhs = A(2:end,2:end);
-    cond_num = rcond(Alhs'*Alhs);
+%     Alhs = A(2:end,2:end);
+    cond_num = rcond(A'*A);
     if (test==0)
-      Alhs = (Alhs'*Alhs)^-1*Alhs';
+      Alhs = (A'*A)^-1*A';
     end
   elseif strcmp(fit_type,'lsq-true')
     cond_num = rcond(A'*A);

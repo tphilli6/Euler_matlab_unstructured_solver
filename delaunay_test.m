@@ -3,11 +3,11 @@ clear all
 clc
 
 qual_max = 1;
-r_max = 1.0;
-nmax = 400;
+r_max = .15;
+nmax = 200;
 
-% generate a circular boundary mesh 
-r = 10;
+% generate a circular boundary mesh
+r = 1;
 n = 41;
 % th = linspace(0,2*pi,n)';
 % x = r*[cos(th), sin(th)];
@@ -53,12 +53,13 @@ bfun_lbl = [];
 n1 = 40;
 theta = linspace(0,2*pi,n1);
 theta = theta(1:end-1);
-xbndry = [r*cos(theta'),r*sin(theta')];
+xbndry = flipud([r*cos(theta'),r*sin(theta')]);
 % x(:,2) = bfun(1).fun(x(1:end-1,:), x(2:end,:));
 bfn1(:,1) = [1:size(xbndry,1)];
 bfn1(:,2) = [2:size(xbndry,1),1];
 bfun_lbl1 = ones(size(bfn1,1),1);
 % bfun(1).fun = @(x1,x2) [xc(x1(:,1), x2(:,1)), xc(x1(:,2), x2(:,2)) ];
+% bfn_faces = [xbndry];
 
 x = [x;xbndry];
 bfn = [bfn; bfn1];
@@ -85,7 +86,7 @@ bfun_lbl = [bfun_lbl; bfun_lbl1];
 
 
 %Initial airfoil mesh
-% n2 = 5;
+% n2 = 11;
 % theta = linspace(0,pi,n2)';
 % xairfoil = 1/2*cos(theta)+1/2;
 % yairfoil = ynaca0012p(xairfoil);
@@ -99,7 +100,7 @@ bfun_lbl = [bfun_lbl; bfun_lbl1];
 % bfn2(:,1) = [1:size(xairfoil,1)-1]+size(x,1);
 % bfn2(:,2) = [2:size(xairfoil,1)]+size(x,1);
 % bfun_lbl2 = 2*ones(size(bfn2,1),1);
-
+% 
 % x = [x;xairfoil];
 % bfn = [bfn; bfn2];
 % bfun_lbl = [bfun_lbl; bfun_lbl2];
@@ -144,9 +145,44 @@ end
 
 ti = remove_corners(ti);
 
+%Remove exterior cells
+[face, cell] =  compute_face_data_from_triangulation(ti,nodes);
+for i = 1:length(face); fn(i,:) = face(i).nodes; end
+
+cnt = 1;
+bfn = bfn+4;
+for i = 1:size(bfn,1)
+    [~,Ia,Ib] = intersect( [bfn(i,:);fliplr(bfn(i,:))], fn , 'rows');
+    if length(Ib>0)
+        if (Ia==1)
+        cn = face(i).cell_neg;
+        if (cn>0)
+        Inotkeep(cnt) = cn;
+        cnt = cnt + 1;
+        end
+        
+        elseif (Ia==2)
+            cn = face(i).cell_plus;
+            if (cn>0)
+            Inotkeep(cnt) = cp;
+            cnt = cnt + 1;
+            end
+        end
+    end
+end
+Iall = 1:length(ti);
+Ikeep = setdiff(Iall,Inotkeep);
+% ti = ti(Ikeep,:);
+
+for i = 1:size(ti,1)
+    plot_cells(ti(i,:),x)
+    hold on
+    plot(x(:,1),x(:,2),'r*')
+end
 
 figure(1)
 plot_cells(ti,x)
+axis equal
 
 
 % [face_nodes, cell_faces, face_cells] = find_neighbors(ti);
@@ -170,6 +206,7 @@ if ~is_delaunay(ti,x)
 end
 
     %% Quality measure refinement
+    bfn = bfn-4;
     quality=[];
     for j = 1:size(ti,1)
     xvec = x(ti(j,:),1)';
@@ -183,12 +220,12 @@ end
 
     n = size(ti,1);
     while (max_qual>qual_max || max_r > r_max) && n < nmax;
-        
-       
+
+
         ismod = 0;
         [max_qual,I] = max(quality);
         [max_r, Ir]  = max(r);
-               
+
         if (max_qual > qual_max*(1+eps))
             [ti, x, bfn, bfun_lbl, cell_mod, cell_same] = delaunay_add_point(ti,x0(I,:),x,bfn, bfun_lbl, bfun);
 %             x = spring_balance_test(ti,x,bfn);
@@ -198,7 +235,7 @@ end
 %             x = spring_balance_test(ti,x,bfn);
             ismod = 1;    
         end
-        
+
         if ismod == 1;
             % Update quality and x0 for modified cells
             if (length(cell_same)>0)
@@ -264,8 +301,10 @@ figure(2)
 plot_cells(ti,x)
 axis equal
 disp([max_qual>qual_max , max_r > r_max, n < nmax])
-end
+    end
 
+save('circle_mesh.mat','ti','x')
+    
 nodes = [xbox; x];
 ti = [1, 2, 4
       4, 2, 3];
