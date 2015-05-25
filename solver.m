@@ -7,7 +7,7 @@ equation_setup
 
 % Generates the simple mesh for the solver, also saves it as a vtk grid file. 
 % While not currently operational, can add a vtk input for a more general solution
-[vertex_grid, face_grid, cell_grid, vertex, face, cell, cell_tri, cell_tri_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered,1);
+[vertex_grid, face_grid, cell_grid, vertex, face, cell, cell_tri, cell_tri_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered,2);
 % load('vc_mesh3.mat')
 
 % save('vc_mesh3.mat','vertex_grid','face_grid','cell_grid','vertex','face','cell','cell_tri','cell_tri_to_cv')
@@ -17,14 +17,7 @@ setup_reconstruction;
 write_sten=1;
 build_kexact_stencil;
 
-      
-            
-            
-            
-            
-            
-            
-            
+          
             
 % Setup dirichlet bc -------------------------------------------------------------------------------
 % assigns the exact solution to apply a dirichlet bc computed later
@@ -41,7 +34,7 @@ write_vtk_solution( vertex_grid, cell_grid, data_write, 'source', 'grid.vtk', 'a
 
 % Setup and Compute the Exact Solution --------------------------------------------------------------
 cell.exact = compute_analytic_exact(cell_tri, vertex, exact_order, analytic_soln, cell_tri_to_cv);
-if vertex_centered;   data_write = vertex_to_cell_average(cell.exact,cell_grid); else data_write=cell.exact; end;
+if vertex_centered;   data_write = vertex_to_cell_average(cell.exact,cell_grid, cell); else data_write=cell.exact; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'exact', 'grid.vtk','a',var )
 
 %Compute Exact TE ----------------------------------------------------------------------------------
@@ -64,7 +57,7 @@ cell.te_exact = compute_residual( cell, face, flux );
 %    te_new(j,:) = t;
 % end
 % cell.te_exact=te_new;
-if vertex_centered;   data_write = vertex_to_cell_average(cell.te_exact,cell_grid); else data_write=cell.te_exact; end;
+if vertex_centered;   data_write = vertex_to_cell_average(cell.te_exact,cell_grid, cell); else data_write=cell.te_exact; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'exact-te', 'grid.vtk','a',eq )
 
 % Initialize the solution variables and writes the initial conditions-------------------------------
@@ -80,7 +73,7 @@ if restart == 0
 
   cell.soln = cell.exact;
 
-  if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid); else data_write=cell.soln; end;
+  if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid, cell); else data_write=cell.soln; end;
   write_vtk_solution( vertex_grid, cell_grid, data_write, 'soln', ['soln-',num2str(0),'.vtk'],'w',var )
 
 elseif restart == 1
@@ -157,35 +150,35 @@ for iter = cell.iteration:cell.iteration + iterations - 1
 %  % Write out new solution
 
 
-    if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid); else data_write=cell.soln; end;
+    if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid, cell); else data_write=cell.soln; end;
     write_vtk_solution( vertex_grid, cell_grid, data_write, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
     
-    if vertex_centered;   data_write = vertex_to_cell_average(resid,cell_grid); else data_write=resid; end;
+    if vertex_centered;   data_write = vertex_to_cell_average(resid,cell_grid, cell); else data_write=resid; end;
     write_vtk_solution( vertex_grid, cell_grid, data_write, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
  
 
 end
 
 % Write out solution
-if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid); else data_write=cell.soln; end;
+if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid, cell); else data_write=cell.soln; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'soln', ['soln-',num2str(iter),'.vtk'],'w',var )
 
-if vertex_centered;   data_write = vertex_to_cell_average(resid,cell_grid); else data_write=resid; end;
+if vertex_centered;   data_write = vertex_to_cell_average(resid,cell_grid, cell); else data_write=resid; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'resid', ['soln-',num2str(iter),'.vtk'],'a',eq )
 
 % Compute discretization error and write to file
-if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid); else data_write=cell.soln; end;
+if vertex_centered;   data_write = vertex_to_cell_average(cell.soln,cell_grid, cell); else data_write=cell.soln; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'soln', 'grid.vtk','a',var )
 
 de = cell.soln - cell.exact;
 
-if vertex_centered;   data_write = vertex_to_cell_average(de,cell_grid); else data_write=de; end;
+if vertex_centered;   data_write = vertex_to_cell_average(de,cell_grid, cell); else data_write=de; end;
 write_vtk_solution( vertex_grid, cell_grid, data_write, 'exact-de', 'grid.vtk','a',var )
 
 if dc_estimate == 1
     de_dc = cell.primal - cell.soln;
     
-    if vertex_centered;   data_write = vertex_to_cell_average(de_dc,cell_grid); else data_write=de_dc; end;
+    if vertex_centered;   data_write = vertex_to_cell_average(de_dc,cell_grid, cell); else data_write=de_dc; end;
     write_vtk_solution( vertex_grid, cell_grid, data_write, 'dc-de', 'grid.vtk','a',var )
 end
 
@@ -204,14 +197,20 @@ save('output_solution.mat','cell','vertex','face')
 
 
 if (dc_estimate==0)
-% te_smooth_grid(cell, face, vertex, ...
-%                         kexact_order, ...
-%                         kexact_type, ...
-%                         fit_type, ...
-%                         3,...
-%                         flux_integral_order,...
-%                         analytic_soln,...
-%                         flux);
+te_smooth_grid(cell, face, vertex, ...
+                        kexact_order, ...
+                        kexact_type, ...
+                        fit_type, ...
+                        kexact_order+2,...
+                        flux_integral_order,...
+                        analytic_soln,...
+                        flux,...
+                        vertex_centered,...
+                        cell_grid,...
+                        face_grid,...
+                        vertex_grid,...
+                        cell_tri_to_cv,...
+                        exact_flux);
 
 te = te_kexact_estimate(cell, face, vertex, ..., ...
                                 kexact_type, ...

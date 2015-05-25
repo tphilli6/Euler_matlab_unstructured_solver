@@ -12,8 +12,11 @@ function source = analytic_flux( vertex, cell, face, flux_func, neq,...
 
 if (nargin == 6)
     face_loop = 1:numel(face);
+    not_face_loop = [];
 elseif (nargin == 7)
     face_loop = cell.faces(ncell,:);
+    ff = 1:numel(cell.volume);
+    not_face_loop = find(ncell~=ff);
 end
 
 % HARDWIRE : curtis-clenshaw quadrature points
@@ -72,6 +75,7 @@ end
 
 
 for n = 1:size(source,2)
-  source_new(:,n) = source(:,n)./cell.volume'; 
+    source(not_face_loop,n) = 0;
+    source_new(:,n) = source(:,n)./cell.volume'; 
 end
 source = source_new;

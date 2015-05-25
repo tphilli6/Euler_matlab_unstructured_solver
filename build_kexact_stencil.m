@@ -7,7 +7,7 @@ fprintf(['Building stencil for ',fit_type,' reconstruction\n'])
 
 % Reconstruction types based on what's set in equation_setup.m
 if strcmp(fit_type(1:3), 'lsq')
-  extra = floor(cell.nunknowns*1.0);
+  extra = floor(cell.nunknowns*.5);
   nstencil = cell.nunknowns + extra;
 %   nstencil = 12; % HARDCODE FOR TESTING
 elseif strcmp(fit_type, 'kexact')

@@ -1,5 +1,11 @@
 function [J] = compute_triangle_jacobian(x,y)
-
+%% Triangle jacobian
+% Fits
+% a + b*xi + c*eta = x
+% d + e*xi + f*eta = y
+% 
+% b = dx/dxi, c = dx/deta
+% e = dy/dxi, f = dy/deta
 dx = 1;
 dy = 0.5*tand(60);
 
@@ -24,6 +30,12 @@ y = reshape(y,[numel(y),1]);
 
 ax = Ainv*x;
 ay = Ainv*y;
+
+% J = | dx/dxi dx/deta |
+%     | dy/dxi dy/deta |
+% To transform to physical space
+% x = J(1,1)*xi + J(1,2)*eta
+% y = J(2,1)*xi + J(2,2)*eta
 
 J = [ax(2), ax(3)
      ay(2), ay(3)];

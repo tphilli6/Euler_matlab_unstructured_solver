@@ -24,12 +24,13 @@ if (cell.lhs_set==0)
     stencil = cell.stencil(n).cells;
 
     % Build the left hand side
-    [Ainv, cond, A, wij] = reconstruction_lhs(stencil, n, cell.reconstruction_param, cell.xc, fit_type, 0, ge_terms);
+    [Ainv, cond, A, wij, Aeval] = reconstruction_lhs(stencil, n, cell.reconstruction_param, cell.xc, fit_type, 0, ge_terms);
 %     [Ainv2, ~, A2] = ts_2d_reconstruction(cell, n, 2);
     
     reconstruction(n).Ainv = Ainv;
     reconstruction(n).A = A;
     reconstruction(n).wij = wij;
+    reconstruction(n).Aeval = Aeval;
   end
 
   cell.reconstruction = reconstruction;
@@ -43,10 +44,10 @@ for n = loop_cells
 
     % extract cells over the stencil
     stencil = cell.stencil(n).cells;
-  
+
 %     for i = 1:length(stencil);
 %       ncell = stencil(i);
-      % Combine the rows associated with each cell in the stencil related 
+      % Combine the rows associated with each cell in the stencil related
       % to the integral of the given polynomial over the cell.
 %       b(i,:) = cell.soln(ncell,:);
       b = cell.soln(stencil,:);
@@ -64,38 +65,18 @@ for n = loop_cells
   for j = 1:neq
     if strcmp(fit_type,'lsq')
         
-%       rhs = b(:,j);
-%       for jj = 1:ge_terms
-%         for ii = j+1:size(rhs,1);
-%           rhs(ii,1) = rhs(ii,1) - reconstruction(n).wij(ii,jj)*rhs(jj,1);
-%         end
-%       end
-      
-      rhs = (b(:,j)-b(isten,j)).*reconstruction(n).wij;
+      rhs = (b(:,j)-b(isten,j)).*reconstruction(n).wij(:,1);
       rhs(isten) = b(isten,j);
     else 
+        
       rhs = b(:,j);
     end
 
     coef_temp = reconstruction(n).Ainv*rhs;
 
-    %       face(n).ul(j,:) = ( (x(1)-cell.xc(l_cell,1)).^px.*(x(2)-cell.xc(l_cell,2)).^py )*coef;
-%      ( (x(1)).^px.*(x(2)).^py )*coef;
-
-%     if strcmp(fit_type,'lsq')
-% % %      coef(1) = coef(1) + cell.soln(n,j);
-% % %       coef_adjust = cell.reconstruction(n).Ai(2:end)*coef_temp;
-%       coef(:,j) = [b(isten,j);coef_temp];
-% % %       coef(:,j) = [cell.soln(n,j)-coef_adjust; coef_temp];
-% % %    disp(reconstruction(n).coef(:,j)')
-%     else
-
-      coef(:,j) = coef_temp;
-%     end
-
-
+    coef(:,j) = coef_temp;
 
   end
       reconstruction(n).coef = coef;
-% reconstruction(n).coef(:,1)
+
 end

@@ -1,4 +1,10 @@
-function [moment] = compute_reconstruction_moments(vertex, cell, face, p )
+function [moment] = compute_reconstruction_moments(vertex, cell, face, p, nc )
+
+if (nargin == 4)
+    loop_cells = 1:cell.ncells;
+elseif (nargin == 5)
+    loop_cells = nc;
+end
 
 % % Test input data
 % nodes=6;
@@ -34,10 +40,11 @@ cell.nunknowns = size(p,2);
 [xq, wq] = gauss_patterson( max(max(p')) );
 % [xq, wq] = gauss_patterson( 2 );
 
-for nn = 1:cell.ncells
-  nnodes = cell.nodes(nn,1);
-  xcc(1) = mean( vertex(cell.nodes(nn,2:nnodes+1),1) );
-  xcc(2) = mean( vertex(cell.nodes(nn,2:nnodes+1),2) );
+for nn = loop_cells
+%   nnodes = cell.nodes(nn,1);
+%   xcc(1) = mean( vertex(cell.nodes(nn,2:nnodes+1),1) );
+%   xcc(2) = mean( vertex(cell.nodes(nn,2:nnodes+1),2) );
+  xcc = cell.xc(nn,:);
 %   xcc = [0,0];
   
   I = find(cell.faces(nn,:)~=0);
