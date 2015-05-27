@@ -7,7 +7,7 @@ equation_setup
 
 % Generates the simple mesh for the solver, also saves it as a vtk grid file. 
 % While not currently operational, can add a vtk input for a more general solution
-[vertex_grid, face_grid, cell_grid, vertex, face, cell, cell_tri, cell_tri_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered,2);
+[vertex_grid, face_grid, cell_grid, vertex, face, cell, cell_tri, cell_tri_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered,refinement);
 % load('vc_mesh3.mat')
 
 % save('vc_mesh3.mat','vertex_grid','face_grid','cell_grid','vertex','face','cell','cell_tri','cell_tri_to_cv')

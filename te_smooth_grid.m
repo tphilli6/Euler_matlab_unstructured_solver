@@ -168,16 +168,13 @@ for n = 1:cell_old.ncells
   % Need to shift vertex_scaled => vertex_scaled - xc_{cur_cell}   
   cell.mms_source = analytic_flux(vertex_scaled_0, cell, face, exact_flux, neq,...
                                   source_order);
-                  
-% TEMP FOR TESTING
-% cell.mms_source = analytic_flux(vertex_scaled, cell, face, exact_flux_orig, neq,...
-%                                 flux_integral_order);
+
   
 pte(1,:) = cell_te.reconstruction_param.px;
 pte(2,:) = cell_te.reconstruction_param.py;
 
 % [recon_soln_eval, ~] = reconstruct_solution(cell, fit_type, 1);
-[moment] = compute_reconstruction_moments(vertex_scaled, cell, face, pte, stencil );
+% [moment] = compute_reconstruction_moments(vertex_scaled, cell, face, pte, stencil );
 [~, ~, Aeval] = compute_reconstruction_lhs(stencil, icell, moment, pte, cell.xc, 1);
 
 % Step 5: Evaluate the higher order reconstruction over the smooth cell stencils.
@@ -185,10 +182,6 @@ for i = 1:size(higher_order_recon(1).coef,2)
     cell_eval = Aeval*higher_order_recon(n).coef(:,i);
     cell.soln(stencil,i) = cell_eval;  
 end
-
-% TEMP FOR TESTING ========================================================
-% cell.soln = compute_analytic_exact(cell_all, vertex_scaled, 4, analytic_soln, all_to_cv);
-
 
 [cell.reconstruction_param.moment] = compute_reconstruction_moments(vertex_scaled, cell, face, p, stencil );
   [smooth_recon, ~] = reconstruct_solution(cell, fit_type, 1, [icell, cell.nbrs(icell,:)] );
@@ -207,7 +200,7 @@ end
 
 %   ivec = (icell-1)*(imax_local) + icell;
   te_smooth(n,:) = te_temp(icell,:);
-  
+
 % data_write = vertex_to_cell_average(cell.soln,cell_tri);
 % write_vtk_solution( vertex_scaled, cell_tri, data_write, 'soln', ['soln-te-',num2str(n),'.vtk'],'w',var ) 
 % 

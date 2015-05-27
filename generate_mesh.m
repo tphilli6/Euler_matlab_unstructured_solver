@@ -5,9 +5,9 @@ seed = 0;
 rng(seed);
 
 if (grid_type==1)
-%     [ti, xi, icell] = generate_equilateral_mesh(3);
-    load('circle_mesh-201.mat')
-    xi=x;
+    [ti, xi, icell] = generate_equilateral_mesh(3);
+%     load('circle_mesh-201.mat')
+%     xi=x;
 
 
     for n=1:r-1

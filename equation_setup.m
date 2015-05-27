@@ -15,6 +15,7 @@ grid_type = 1; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
 restart = 0;
 dc_estimate = 0;
 vertex_centered = 1;
+refinement = 2;
 
 source_term_order=6;
 exact_order=6;
