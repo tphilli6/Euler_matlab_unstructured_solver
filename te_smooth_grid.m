@@ -1,4 +1,4 @@
-function te_smooth_grid(cell, face, vertex, ...
+function te_smooth = te_smooth_grid(cell, face, vertex, ...
                         kexact_order, ...
                         kexact_type, ...
                         fit_type, ...
@@ -11,7 +11,8 @@ function te_smooth_grid(cell, face, vertex, ...
                         face_grid,...
                         vertex_grid,...
                         cell_cv_to_tri,...
-                        exact_flux_orig)
+                        exact_flux_orig,...
+                        exact_fun)
  
                     
 itermax = 1;
@@ -45,6 +46,8 @@ vertex_old = vertex;
   % Sets up higher_order_recon(n).coef  % coefficients of higher order reconstruction
   cell.lhs_set = 0; % Reset stencil
   [higher_order_recon, ~] = reconstruct_solution(cell, fit_type, 1);
+
+
   
   % Relaxes LSQ constraint by overwritting the Ainv previously computed.
   cell.lhs_set = 1;
@@ -52,8 +55,31 @@ vertex_old = vertex;
       A = higher_order_recon(i).Aeval;
       cell.reconstruction(i).Ainv = (A'*A)^(-1)*A';      
   end
+   
 [higher_order_recon, ~] = reconstruct_solution(cell, fit_type, 1);
 cell.lhs_set = 0; % Reset stencil
+
+  %Compute the l2 norm in the curve fit error over a similar area as the
+  %cell
+  for i = 1:length(cell.volume)
+      l2_error(i,:,:) = plot_reconstruction_derivatives(higher_order_recon(i).coef, ...
+          higher_order_recon_param.px, higher_order_recon_param.py, ...
+          cell.xc(i,:), cell.volume(i), exact_fun);
+  end
+  
+  der_lab = {'f','fx','fy','fxx','fxy','fyy','fxxx','fxxy','fxyy','fyyy','fxxxx','fxxxy','fxxyy','fxyyy','fyyyy'};
+  
+  
+  data_write = vertex_to_cell_average(l2_error(:,:,1), cell_grid, cell_old);
+  write_vtk_solution( vertex_grid, cell_grid, data_write, [der_lab{1},'_err'], 'fit_err.vtk', 'w', var )
+  for i = 2:size(l2_error,3);
+    data_write = vertex_to_cell_average(l2_error(:,:,i), cell_grid, cell_old);
+     write_vtk_solution( vertex_grid, cell_grid, data_write, [der_lab{i},'_err'], 'fit_err.vtk', 'a', var )
+  end
+
+%   plot_reconstruction_derivatives(higher_order_recon(1).coef, ...
+%       higher_order_recon_param.px, higher_order_recon_param.py, ...
+%       cell.xc(1,:), cell.volume(1), exact_fun)
 
 % ***********************************************
 % ***********************************************
@@ -142,7 +168,7 @@ for n = 1:cell_old.ncells
     
    
 
-    % Compute scaling
+    % Compute scaling STEP 1 ==============================================
     scale = sqrt( cell_volume/dxideta );
     %   scale = 1;
     vertex_scaled_0(:,1) = (vertex(:,1)-cell_smooth.xc(icell,1) )*scale;
@@ -161,7 +187,7 @@ for n = 1:cell_old.ncells
         face(i).area = face(i).area*scale;
     end
 
-  
+
   [face, ~] =  compute_face_data_from_triangulation(cell.nodes(:,2:end),vertex_scaled);
 
                              
@@ -174,7 +200,11 @@ pte(1,:) = cell_te.reconstruction_param.px;
 pte(2,:) = cell_te.reconstruction_param.py;
 
 % [recon_soln_eval, ~] = reconstruct_solution(cell, fit_type, 1);
-% [moment] = compute_reconstruction_moments(vertex_scaled, cell, face, pte, stencil );
+[moment] = compute_reconstruction_moments(vertex_scaled, cell, face, pte, stencil );
+%TEMP FOR TESTING
+% for i = 1:numel(moment)
+%     moment(i).cv = higher_order_recon_param.moment(n).cv;
+% end
 [~, ~, Aeval] = compute_reconstruction_lhs(stencil, icell, moment, pte, cell.xc, 1);
 
 % Step 5: Evaluate the higher order reconstruction over the smooth cell stencils.
@@ -184,6 +214,9 @@ for i = 1:size(higher_order_recon(1).coef,2)
 end
 
 [cell.reconstruction_param.moment] = compute_reconstruction_moments(vertex_scaled, cell, face, p, stencil );
+for i = 1:numel(moment)
+    moment(i).cv = cell_old.reconstruction_param.moment(n).cv;
+end
   [smooth_recon, ~] = reconstruct_solution(cell, fit_type, 1, [icell, cell.nbrs(icell,:)] );
 
   cell.reconstruction = smooth_recon;
@@ -200,7 +233,85 @@ end
 
 %   ivec = (icell-1)*(imax_local) + icell;
   te_smooth(n,:) = te_temp(icell,:);
+  te_smooth_constant(n,:) = te_temp(icell,:)/cell.volume(icell)^2;
+  
+      % Compute scaling STEP 2 ==============================================
+    cell = cell_smooth;
+    face = face_smooth;
+    scale = sqrt( cell_volume/dxideta )/4;
+    %   scale = 1;
+    vertex_scaled_0(:,1) = (vertex(:,1)-cell_smooth.xc(icell,1) )*scale;
+    vertex_scaled_0(:,2) = (vertex(:,2)-cell_smooth.xc(icell,2) )*scale;
+    vertex_scaled(:,1) = vertex_scaled_0(:,1) + cell_old.xc(n,1);
+    vertex_scaled(:,2) = vertex_scaled_0(:,2) + cell_old.xc(n,2);
+    vertex_scaled(:,3) = 0;
 
+    for i = 1:cell.ncells
+        cell.volume(i) = cell.volume(i)*scale^2;
+        I = find( cell.nodes(i,2:end)~=0 );
+        cell.xc(i,:) = mean( vertex_scaled( cell.nodes(i,I+1), 1:2), 1);
+    end
+
+    for i = 1:length(face)
+        face(i).area = face(i).area*scale;
+    end
+
+
+  [face, ~] =  compute_face_data_from_triangulation(cell.nodes(:,2:end),vertex_scaled);
+
+                             
+  % Need to shift vertex_scaled => vertex_scaled - xc_{cur_cell}   
+  cell.mms_source = analytic_flux(vertex_scaled_0, cell, face, exact_flux, neq,...
+                                  source_order);
+
+  
+pte(1,:) = cell_te.reconstruction_param.px;
+pte(2,:) = cell_te.reconstruction_param.py;
+
+% [recon_soln_eval, ~] = reconstruct_solution(cell, fit_type, 1);
+[moment] = compute_reconstruction_moments(vertex_scaled, cell, face, pte, stencil );
+%TEMP FOR TESTING
+% for i = 1:numel(moment)
+%     moment(i).cv = higher_order_recon_param.moment(n).cv;
+% end
+[~, ~, Aeval] = compute_reconstruction_lhs(stencil, icell, moment, pte, cell.xc, 1);
+
+% Step 5: Evaluate the higher order reconstruction over the smooth cell stencils.
+for i = 1:size(higher_order_recon(1).coef,2)
+    cell_eval = Aeval*higher_order_recon(n).coef(:,i);
+    cell.soln(stencil,i) = cell_eval;  
+end
+
+[cell.reconstruction_param.moment] = compute_reconstruction_moments(vertex_scaled, cell, face, p, stencil );
+for i = 1:numel(moment)
+    moment(i).cv = cell_old.reconstruction_param.moment(n).cv;
+end
+  [smooth_recon, ~] = reconstruct_solution(cell, fit_type, 1, [icell, cell.nbrs(icell,:)] );
+
+  cell.reconstruction = smooth_recon;
+  % Step 6: Evaluate the residual over the smooth cells
+  ncell = cell.faces(icell,:);
+  face_out = compute_left_and_right_state(vertex_scaled, cell, face,...
+                                          analytic_soln, icell);
+  face = face_out;
+
+  % Step 7: Estimate the truncation error over the reconstruction
+  % This is just a regular higher order estimate
+  te_temp = compute_residual( cell, face, flux,icell);
+
+
+%   ivec = (icell-1)*(imax_local) + icell;
+  te_smooth2(n,:) = te_temp(icell,:);
+  
+  te_smooth_constant2(n,:) = te_temp(icell,:)/cell.volume(icell)^2;
+  
+  
+  
+  
+% fid = fopen(['smooth_grid_cv-',num2str(n),'.vtk'],'w');
+% write_vtk_cv(vertex_scaled, cell, fid, stencil);
+% fclose(fid);
+  
 % data_write = vertex_to_cell_average(cell.soln,cell_tri);
 % write_vtk_solution( vertex_scaled, cell_tri, data_write, 'soln', ['soln-te-',num2str(n),'.vtk'],'w',var ) 
 % 
@@ -212,6 +323,7 @@ end
 
 end
 
+reliability = log(te_smooth./te_smooth2)/log(2);
 
 
 % for nn = 1:length(te_smooth(1,:))
@@ -273,4 +385,13 @@ end
 data_write = vertex_to_cell_average(te_smooth, cell_grid, cell_old);
   write_vtk_solution( vertex_grid, cell_grid, data_write, 'te_estimate_smooth', 'grid.vtk', 'a', eq )
 primal_soln = cell_old.soln;
-save('te_estimate.mat','te_smooth','primal_soln')
+save('te_estimate_smooth.mat','te_smooth','primal_soln')
+
+data_write = vertex_to_cell_average(reliability, cell_grid, cell_old);
+  write_vtk_solution( vertex_grid, cell_grid, data_write, 'te_smooth_p', 'grid.vtk', 'a', eq )
+  
+data_write = vertex_to_cell_average(te_smooth_constant, cell_grid, cell_old);
+  write_vtk_solution( vertex_grid, cell_grid, data_write, 'te_smooth_constant', 'grid.vtk', 'a', eq )
+  
+data_write = vertex_to_cell_average(te_smooth_constant2, cell_grid, cell_old);
+  write_vtk_solution( vertex_grid, cell_grid, data_write, 'te_smooth_constant2', 'grid.vtk', 'a', eq )

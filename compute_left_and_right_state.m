@@ -45,11 +45,11 @@ for n = face_loop
       face(n).ul(j,:) = ( (x(1)-cell.xc(l_cell,1)).^px.*(x(2)-cell.xc(l_cell,2)).^py )*coef;
 %       face(n).ul(j,:) = ( (x(1)).^px.*(x(2)).^py )*coef;
 
+%       soln(j,:) = analytic_soln(x);
 
 
-
-    end
-
+   end
+%     face(n).ul = soln;
 
   r_cell = face(n).cell_neg;
   % If not a boundary
@@ -65,9 +65,10 @@ for n = face_loop
       face(n).ur(j,:) = ( (x(1)-cell.xc(r_cell,1)).^px.*(x(2)-cell.xc(r_cell,2)).^py )*coef;
 %        face(n).ur(j,:) = ( (x(1)).^px.*(x(2)).^py )*coef;
 
+%     soln(j,:) = analytic_soln(x);
 
-    end
-
+   end
+%     face(n).ul = soln;
 
 
 
@@ -93,6 +94,11 @@ for n = face_loop
     end
 
     face(n).ur = soln;
-  end
 
+  
+  elseif (r_cell == -2)
+      face(n).ur = face(n).ul;
+
+      
+  end
 end

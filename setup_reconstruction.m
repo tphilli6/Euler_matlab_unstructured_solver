@@ -71,7 +71,7 @@ end
 
 % HARDWIRE : curtis-clenshaw quadrature for dirichlet bc 
 % Stores the 1D quadrature for flux integration
-[xquad, wquad] = curtis_clenshaw( flux_integral_order );
+[xquad, wquad] = gauss_patterson( flux_integral_order );
 
 cell.reconstruction_param.xquad = xquad;
 cell.reconstruction_param.wquad = wquad;

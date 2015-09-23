@@ -15,12 +15,14 @@ if (nargin == 6)
     not_face_loop = [];
 elseif (nargin == 7)
     face_loop = cell.faces(ncell,:);
+    I=find(face_loop~=0);
+    face_loop = face_loop(I);
     ff = 1:numel(cell.volume);
     not_face_loop = find(ncell~=ff);
 end
 
 % HARDWIRE : curtis-clenshaw quadrature points
-[xquad, wquad] = curtis_clenshaw( order );
+[xquad, wquad] = gauss_patterson( order );
 
 source = zeros([numel(cell.volume),neq]);
     %temp

@@ -9,7 +9,7 @@ fprintf(['Building stencil for ',fit_type,' reconstruction\n'])
 if strcmp(fit_type(1:3), 'lsq')
   extra = floor(cell.nunknowns*.5);
   nstencil = cell.nunknowns + extra;
-%   nstencil = 12; % HARDCODE FOR TESTING
+  nstencil = stencil_size(kexact_order+1); % HARDCODE FOR TESTING
 elseif strcmp(fit_type, 'kexact')
   nstencil = cell.nunknowns;
 elseif strcmp(fit_type, 'extended')

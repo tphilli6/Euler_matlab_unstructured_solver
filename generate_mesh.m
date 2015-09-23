@@ -1,4 +1,4 @@
-function [vertex, face, cell, vertex_cv, face_cv, cell_cv, cell_all, all_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered, r)
+function [vertex, face, cell, vertex_cv, face_cv, cell_cv, cell_all, all_to_cv] = generate_mesh(imax, jmax, grid_type, neq, vertex_centered, r, grid_in)
 
 perturb = 0.;
 seed = 0;
@@ -60,6 +60,7 @@ if (grid_type==1)
     I = [1:size(vertex,1)]';
     Iinterior = setdiff( I, Ibndry);
 
+    % Perturb interior nodes only
     [face_nodes] = find_neighbors(ti);
     fxi1(:,1:2) = xi( face_nodes(:,1),1:2);
     fxi2(:,1:2) = xi( face_nodes(:,2),1:2);
@@ -71,7 +72,32 @@ if (grid_type==1)
     dth = 2*pi*rand(ninterior,1);
     vertex(Iinterior,:) = vertex(Iinterior,:) + [del.*cos(dth), del.*sin(dth),zeros(size(dth))];
     
+elseif grid_type==-1
+    
+    [ti, xi] = read_mesh_file(grid_in);
+%     minx = min(xi(:,1));
+%     range_x = max(xi(:,1))-minx;
+%     vertex(:,1)=(xi(:,1)-minx)./range_x*0.5;
+%     
+%     miny = min(xi(:,2));
+%     range_y = max(xi(:,2)) - miny;
+%     vertex(:,2) = (xi(:,2)-miny)./range_x*0.5;
+%     
+%     vertex(:,3) = 0;
+    vertex = xi;
+    [face, cell] =  compute_face_data_from_triangulation(ti,vertex);
+    
+elseif grid_type==-2
+    mu = complex(-0.0475,0);
+    te_angle = -2*(0.594689181*(1/2*0.298222773/sqrt(1) - 0.127125232 - 2*0.357907906*1 + 3*0.291984971*1*1 - 4*0.105174606*1*1*1));
         
+    [ti, xi] = generate_kt_airfoil(mu, te_angle);
+
+    vertex = xi;
+    vertex(:,3) = 0;
+    [face, cell] =  compute_face_data_from_triangulation(ti,vertex);
+    
+    
 else
     
 

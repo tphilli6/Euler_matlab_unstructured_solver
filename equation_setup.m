@@ -2,6 +2,11 @@
 
 addpath('./multiquad');
 
+r_inf = 1;%kg/m3
+p_inf = 100000; %N/m2
+c_inf = sqrt(1.4*p_inf/r_inf);
+
+
 % Set the equations to solve and parameters
 equation = 'euler';
 imax = 9;
@@ -11,16 +16,18 @@ CFL = .0;
 toler = 1e-8;
 glb_dt = 0; %global time step, 1 = true, 0=false
 mms_number=1; %1=supersonic, 2=subsonic
-grid_type = 1; %quad = 0, triangles = 1, mixed = 2 (predecided mix)
+grid_type = 1; %quad = 0, triangles = 1, mixed = 2, from file = -1 (predecided mix)
+grid_in = 'foil-pert.00.mesh';%'0012-1397.mesh';
 restart = 0;
 dc_estimate = 0;
 vertex_centered = 1;
-refinement = 2;
+refinement = 1;
 
 source_term_order=6;
 exact_order=6;
 
-kexact_order = 1;
+kexact_order = 0;
+stencil_size=[1,7,19,37];
 flux_integral_order = 6;
 kexact_type = 'ts'; %'kexact', 'kexact_extended','ts'
 %kexact_type = 'kexact_extended';
@@ -54,6 +61,7 @@ if (equation == 'euler')
 
   % Sets the discrete flux function
   flux = @(ul, ur, normal) flux_vanleer(ul, ur, normal);
+%   flux = @(ul, ur, normal) flux_euler(ul, ur, normal);
 
   % Sets up the exact function
   exact_fun = setup_mms_crossterm(mms_number);

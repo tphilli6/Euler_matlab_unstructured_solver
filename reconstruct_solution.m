@@ -67,6 +67,9 @@ for n = loop_cells
         
       rhs = (b(:,j)-b(isten,j)).*reconstruction(n).wij(:,1);
       rhs(isten) = b(isten,j);
+      
+      %HARDCODE - Removes mean constraint.
+%       rhs = b(:,j).*reconstruction(n).wij(:,1);
     else 
         
       rhs = b(:,j);

@@ -1,10 +1,4 @@
-function [moment] = compute_reconstruction_moments(vertex, cell, face, p, nc )
-
-if (nargin == 4)
-    loop_cells = 1:cell.ncells;
-elseif (nargin == 5)
-    loop_cells = nc;
-end
+function [exact] = compute_generic_moments(vertex, cell, face, exact_fun )
 
 % % Test input data
 % nodes=6;
@@ -31,27 +25,28 @@ end
 %   cnt = cnt + 1;
 % end
 % end
-nterms = size(p,2);
-cell.reconstruction_param.px = p(1,:);
-cell.reconstruction_param.py = p(2,:);
+nterms = 1;%size(p,2);
+% cell.reconstruction_param.px = p(1,:);
+% cell.reconstruction_param.py = p(2,:);
 
 
-cell.nunknowns = size(p,2);
-[xq, wq] = gauss_patterson( max(max(p')) );
+% cell.nunknowns = size(p,2);
+[xq, wq] = gauss_patterson( 4 );
 % [xq, wq] = gauss_patterson( 2 );
 
-for nn = loop_cells
+for nn = 1:cell.ncells
 %   nnodes = cell.nodes(nn,1);
 %   xcc(1) = mean( vertex(cell.nodes(nn,2:nnodes+1),1) );
 %   xcc(2) = mean( vertex(cell.nodes(nn,2:nnodes+1),2) );
-  xcc = cell.xc(nn,:);
   
   I = find(cell.faces(nn,:)~=0);
   nf = length(I);
   f = cell.faces(nn,1:nf);
   
 %     close all
-    for j = 1:nterms
+    for j = 1:4
+     c = exact_fun.cex(j,:);
+     
      ix = 0;
      iy = 0;
 
@@ -68,8 +63,9 @@ for nn = loop_cells
             x = fx(1,1) + (fx(2,1)-fx(1,1))*xq(n);
             y = fx(1,2) + (fx(2,2)-fx(1,2))*xq(n);
             
-            int_x = int_x + ((x-xcc(1)).^(p(1,j)+1).*(y-xcc(2)).^p(2,j))*wq(n).*fnormal(1)*face(f(i)).area;
-            int_y = int_y + ((x-xcc(1)).^(p(1,j)).*(y-xcc(2)).^(p(2,j)+1))*wq(n).*fnormal(2)*face(f(i)).area;
+
+            int_x = int_x + exact_fun.intx([x,y],c).*wq(n).*fnormal(1)*face(f(i)).area;
+%             int_y = int_y + ((x-xcc(1)).^(p(1,j)).*(y-xcc(2)).^(p(2,j)+1))*wq(n).*fnormal(2)*face(f(i)).area;
 
          end
       
@@ -82,11 +78,12 @@ for nn = loop_cells
          
       end
       
-      int_x = int_x/( (p(1,j)+1)*cell.volume(nn) );
-      int_y = int_y/( (p(2,j)+1)*cell.volume(nn) );
-      cv_moment(nn,j) = int_x;% + int_y;
-      cv_momenty(nn,j) = int_y;
-      moment(nn).cv(  p(1,j)+1, p(2,j)+1 ) = cv_moment(nn,j);
+      int_x = int_x/( cell.volume(nn) );
+%       int_y = int_y/( (p(2,j)+1)*cell.volume(nn) );
+%       cv_moment(nn,j) = int_x;% + int_y;
+%       cv_momenty(nn,j) = int_y;
+%       moment(nn).cv(  p(1,j)+1, p(2,j)+1 ) = cv_moment(nn,j);
+      exact(nn,j) = int_x;
 
       
     end
@@ -97,7 +94,7 @@ for nn = loop_cells
  
   end
 
-cell.reconstruction_param.moment = moment;
+% cell.reconstruction_param.moment = moment;
 
 
 % % Test routines

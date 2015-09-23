@@ -17,8 +17,9 @@ if size(p,2)>1
 
         rij = sqrt( (xj(1)-xi(1)).^2 + (xj(2)-xi(2)).^2 );
         wij(j,1)  = 1/rij^pw;
-%         if (rij < eps) wij(j,1) = 1; end
-        if (I==j) wij(j,1) = 1; end
+        if (rij < eps) wij(j,1) = 1; end
+%         if (I==j) wij(j,1) = 1; end
+
 
 
         for nn = 1:size(p,2)
@@ -59,7 +60,8 @@ if size(p,2)>1
 
 
 
-    I = find(stencil(i,:)==cell_num);
+    I = find(stencil(i,:)==cell_num);  
+    
     A(I,:) = A(I,:)./A(I,1);
     row = A(I,:);
     cnt=1;
@@ -69,7 +71,7 @@ if size(p,2)>1
             c = A(j,1)/row(1);
             
             Aout(cnt,:) = A(j,:)-c*row;
-
+                
             wij_out(cnt,1) = wij(j,1);
             cnt = cnt + 1;
         else
@@ -83,8 +85,16 @@ if size(p,2)>1
     A = Aout;
     wij = wij_out;
     
+    
+        %HARDCODE - Removes mean constraint.
+%     wij = ones(size(wij));
+%     A(I,:) = Aeval(I,:)*4*max(wij);
+%     wij(I,1) = wij(I,1)*4*max(wij);
+    
+    
 else
     A = 1;
+    Aeval = 1;
     wij = 1;
     
 end

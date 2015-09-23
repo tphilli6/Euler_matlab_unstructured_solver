@@ -1,10 +1,88 @@
-function [moment] = compute_reconstruction_moments(vertex, cell, face, p, nc )
+function compare_derivatives(cell, face, vertex, ...
+                        kexact_order, ...
+                        kexact_type, ...
+                        fit_type, ...
+                        te_order,...
+                        flux_integral_order,...
+                        analytic_soln,...
+                        flux,...
+                        vertex_centered,...
+                        cell_grid,...
+                        face_grid,...
+                        vertex_grid,...
+                        cell_cv_to_tri,...
+                        exact_flux_orig,...
+                        exact_fun)
+ 
 
-if (nargin == 4)
-    loop_cells = 1:cell.ncells;
-elseif (nargin == 5)
-    loop_cells = nc;
+itermax = 1;
+                    
+eq = {'mass','xmtm', 'ymtm', 'nrgy'};
+var = {'rho','u','v','p'};
+
+base_order = kexact_order;
+base_type  = kexact_type;
+base_fit_type = fit_type;
+soln_old = cell.soln;
+cell_old = cell;
+face_old = face;
+vertex_old = vertex;
+
+
+  % Step 1: compute a lsq reconstruction over a large stencil
+  % - setup_reconstruction sets up the polynomial for the reconstruction
+  kexact_order = te_order;
+  fit_type = base_fit_type;
+
+  setup_reconstruction;
+  higher_order_recon_param = cell.reconstruction_param;
+  
+  extra_terms = cell.nunknowns*2;
+  fit_type = 'extended';
+  build_kexact_stencil;
+
+  % ******* Important output ********* higher_order_recon
+  % reconstruct the higher order solution
+  % Sets up higher_order_recon(n).coef  % coefficients of higher order reconstruction
+  cell.lhs_set = 0; % Reset stencil
+  [higher_order_recon, ~] = reconstruct_solution(cell, fit_type, 1);
+
+
+  
+  % Relaxes LSQ constraint by overwritting the Ainv previously computed.
+%   cell.lhs_set = 1;
+%   for i = 1:cell.ncells
+%       A = higher_order_recon(i).Aeval;
+%       cell.reconstruction(i).Ainv = (A'*A)^(-1)*A';      
+%   end
+%    
+% [higher_order_recon, ~] = reconstruct_solution(cell, fit_type, 1);
+% cell.lhs_set = 0; % Reset stencil
+
+  %Compute the l2 norm in the curve fit error over a similar area as the
+  %cell
+  for i = 1:length(cell.volume)
+      nnodes = cell.nodes(i,1);
+      cell_vertex = vertex(cell.nodes(i,2:nnodes+1),1:2);
+      l2_error(i,:,:) = plot_reconstruction_derivatives(higher_order_recon(i).coef, ...
+          higher_order_recon_param.px, higher_order_recon_param.py, ...
+          cell.xc(i,:), cell.volume(i), exact_fun, cell_vertex);
+  end
+  
+  der_lab = {'f','fx','fy','fxx','fxy','fyy','fxxx','fxxy','fxyy','fyyy','fxxxx','fxxxy','fxxyy','fxyyy','fyyyy'};
+  kexact_max_der = [3,6,10,15];
+  
+  data_write = vertex_to_cell_average(l2_error(:,:,1), cell_grid, cell_old);
+  write_vtk_solution( vertex_grid, cell_grid, data_write, [der_lab{1},'_err'], 'fit_err.vtk', 'w', var )
+  for i = 2:kexact_max_der(kexact_order)
+    data_write = vertex_to_cell_average(l2_error(:,:,i), cell_grid, cell_old);
+     write_vtk_solution( vertex_grid, cell_grid, data_write, [der_lab{i},'_err'], 'fit_err.vtk', 'a', var )
+  end
+  
 end
+  
+  
+ function [moment] = compute_reconstruction_moment_for_cell(vertex, cell, face, p, ncell )
 
 % % Test input data
 % nodes=6;
@@ -32,19 +110,18 @@ end
 % end
 % end
 nterms = size(p,2);
-cell.reconstruction_param.px = p(1,:);
-cell.reconstruction_param.py = p(2,:);
 
 
 cell.nunknowns = size(p,2);
 [xq, wq] = gauss_patterson( max(max(p')) );
 % [xq, wq] = gauss_patterson( 2 );
 
-for nn = loop_cells
+nn=ncell;
 %   nnodes = cell.nodes(nn,1);
 %   xcc(1) = mean( vertex(cell.nodes(nn,2:nnodes+1),1) );
 %   xcc(2) = mean( vertex(cell.nodes(nn,2:nnodes+1),2) );
   xcc = cell.xc(nn,:);
+%   xcc = [0,0];
   
   I = find(cell.faces(nn,:)~=0);
   nf = length(I);
@@ -97,7 +174,6 @@ for nn = loop_cells
  
   end
 
-cell.reconstruction_param.moment = moment;
 
 
 % % Test routines
