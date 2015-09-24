@@ -31,7 +31,7 @@ nterms = 1;%size(p,2);
 
 
 % cell.nunknowns = size(p,2);
-[xq, wq] = gauss_patterson( 4 );
+[xq, wq] = gauss_patterson( 5 );
 % [xq, wq] = gauss_patterson( 2 );
 
 for nn = 1:cell.ncells
@@ -85,7 +85,7 @@ for nn = 1:cell.ncells
 %       moment(nn).cv(  p(1,j)+1, p(2,j)+1 ) = cv_moment(nn,j);
       exact(nn,j) = int_x;
 
-      
+
     end
     
 %     cv_moment(nn,:)*[1;0;0;1;0;1]

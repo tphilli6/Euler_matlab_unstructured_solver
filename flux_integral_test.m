@@ -1,15 +1,13 @@
 clc
-% clear all
+clear all
 
 equation_setup
 
 
-refinement = 1.5;
-kexact_order = 0;
+refinement = 2;
+kexact_order = 2;
 grid_type = -1; %quad = 0, triangles = 1, mixed = 2, from file = -1 (predecided mix)
 grid_in = 'equilateral.mesh';%'0012-1397.mesh';
-% coef_ex = [1, 0, 0, 0, 0, 0, 0.1, 0, 0, -0.15];
-% coef_ex = [1, 0, 0, 0.1, 0, -0.15];
 [ti, xi] = generate_equilateral_mesh(kexact_order+1, 1); % generate and write 'equilateral.mesh'
 
 source_term_order=kexact_order+1;
@@ -17,12 +15,16 @@ exact_order=kexact_order+1;
 flux_integral_order=kexact_order+1;
 
 for ref = 1:10
-    
     scale = 1/(refinement.^(ref-1));
 
+%     scale = 1;
     % generate_equilateral_mesh(4, 1); % generate and write 'equilateral.mesh'
     [~, ~, ~, vertex, face, cell_new,  cell_tri, cell_tri_to_cv] = read_unstructured_mesh(grid_in, vertex_centered, scale);
 
+%     vertex(:,1) = vertex(:,1) + 1;
+%     vertex(:,2) = vertex(:,2) + 1;
+    
+    
     % Computes the cell mapping required for quadratures
     cell = cell_new;
     setup_reconstruction;
@@ -35,20 +37,29 @@ for ref = 1:10
 
     for n = 1 : length(face); face(n).func = exact_fun; end % Assign exact function to faces
     cell.mms_source = analytic_flux(vertex, cell, face, exact_flux, neq, source_term_order); % Compute source term
-%     cell.exact = compute_generic_moments(vertex, cell, face, exact_fun );
-    cell.exact = compute_analytic_exact(cell_tri, vertex, exact_order, analytic_soln, cell_tri_to_cv); % Compute exact solution
+    cell.exact = compute_generic_moments(vertex, cell, face, exact_fun );
+    cell.exact2 = compute_analytic_exact(cell_tri, vertex, exact_order, analytic_soln, cell_tri_to_cv); % Compute exact solution
     cell.soln = cell.exact;
 
+%     dx=0.01;
+%     y=0.1;
+%     for ij = 1:5
+%         der_a=(exact_fun.intx([dx,y],exact_fun.cex(1,:)) -exact_fun.intx([-dx,y],exact_fun.cex(1,:) ))/(2*dx);
+%         der = exact_fun.rho([0,y]);
+%         der_e(ij) = der_a - der;
+%         dx = dx/2;
+%     end
+    
     cell.reconstruction = reconstruct_solution(cell, fit_type, 1);
-%     cell.reconstruction(1).coef(:,1)'-coef_ex
-    % Compute flux integral (exact TE)
+
+    face = compute_left_and_right_state(vertex, cell, face, analytic_soln);
+
 %     for i=1:12
 %         nap=cell.faces(1,i);
 %         face(nap).ul(:,1)-face(nap).ur(:,1)
 %     end
 %     face(cell.faces(1,12)).nodes = cell.nodes(1,[12,1]);
 
-    face = compute_left_and_right_state(vertex, cell, face, analytic_soln);
     cell.te_exact = compute_residual( cell, face, flux );
 
     for jj = 1:size(cell.te_exact,2)
@@ -56,12 +67,13 @@ for ref = 1:10
     end
 
     flux_int(ref,:) = abs(cell.te_exact(1,:));
+%     flux_int(ref,:) = sqrt( sum( (cell.te_exact(1:7,:)).^2 )/7 );
 
 end
 
 h = vol.^(1/2);%(vol./vol(end)).^(1/2);
 
-rp = (h(1:end-1)./h(2:end)).^(1/2);
+rp = (vol(1:end-1)./vol(2:end)).^(1/2);
 p = log(  flux_int(1:end-1,:)./flux_int(2:end,:) )./log( repmat(rp',[1,size(flux_int,2)]) );
 
 ref_h = ([h(1),h(end)]/h(end)).^(1/2);

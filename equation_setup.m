@@ -27,7 +27,7 @@ source_term_order=6;
 exact_order=6;
 
 kexact_order = 0;
-stencil_size=[1,7,19,37];
+stencil_size=[1,7,19,19];
 flux_integral_order = 6;
 kexact_type = 'ts'; %'kexact', 'kexact_extended','ts'
 %kexact_type = 'kexact_extended';
